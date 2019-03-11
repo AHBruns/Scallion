@@ -89,4 +89,12 @@ void shiftNPastIndex(void * index, int shift, struct NODE * head) {
     }
 }
 
+void freeList(struct NODE * head) {
+    if (head) {
+        struct NODE * tmp =  head->next;
+        free(head);
+        freeList(tmp);
+    }
+}
+
 #endif //SCALLION_EXPRUTILS_H
