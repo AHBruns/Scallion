@@ -7,7 +7,7 @@
 
 #include <string.h>
 
-#include "integerExpr.h"
+#include "exprs.h"
 #include "alexBrunsDataStructs.h"
 
 void printExpr(struct NAMED_TOKEN * head) {
@@ -29,8 +29,20 @@ void printExpr(struct NAMED_TOKEN * head) {
         printf(", ");
         printExpr(head->token->Plus->rh);
         printf(")");
+    } else if (strcmp(head->name, "FDIV") == 0) {
+        printf("FDIV (");
+        printExpr(head->token->Plus->lh);
+        printf(", ");
+        printExpr(head->token->Plus->rh);
+        printf(")");
     } else if (strcmp(head->name, "DIV") == 0) {
         printf("DIV (");
+        printExpr(head->token->Plus->lh);
+        printf(", ");
+        printExpr(head->token->Plus->rh);
+        printf(")");
+    } else if (strcmp(head->name, "MOD") == 0) {
+        printf("MOD (");
         printExpr(head->token->Plus->lh);
         printf(", ");
         printExpr(head->token->Plus->rh);
@@ -44,6 +56,17 @@ void printExpr(struct NAMED_TOKEN * head) {
     } else if (strcmp(head->name, "CONST") == 0) {
         printf("CONST (%d)", head->token->Const->v);
     }
+}
+
+// parens helpers
+void printParenPairList(struct PAREN_PAIR pairs[100]) {
+    printf("\n\n");
+    for (int i = 0; i < 100; i++) {
+        if (pairs[i].depth < 0) {
+            printf("- - - - - - -\nstart: %s\nend:%s\ndepth: %d\n- - - - - - -\n", pairs[i].beginning, pairs[i].ending, pairs[i].depth);
+        }
+    }
+    printf("\n");
 }
 
 // basic linked list implementation
@@ -95,6 +118,20 @@ void freeList(struct NODE * head) {
         free(head);
         freeList(tmp);
     }
+}
+
+void printList(struct NODE * head) {
+    printf("--\n");
+    struct NODE * ptr = head;
+    while (ptr) {
+        if (ptr->token != NULL && ptr->index != NULL) {
+            printf("%p ", ptr->index);
+            printExpr(ptr->token);
+            printf("\n");
+        }
+        ptr = ptr->next;
+    }
+    printf("--\n");
 }
 
 #endif //SCALLION_EXPRUTILS_H

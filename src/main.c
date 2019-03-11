@@ -10,20 +10,23 @@
 #include <assert.h>
 
 // local includes
-#include "integerExpr.h"
+#include "exprs.h"
 #include "alexBrunsDataStructs.h"
 #include "exprUtils.h"
+#include "results.h"
 
 // prototypes
 char * read_in(FILE *);
-struct NAMED_TOKEN * tokenize(char *, struct NAMED_TOKEN *);
+struct NAMED_TOKEN * tokenize(char *, struct NODE *);
 struct NAMED_TOKEN * const_tokenize(char *);
-void paren_tokenize(char *);
-void pow_tokenize(char *);
-void mul_tokenize(char *);
-void div_tokenize(char *);
-void plus_tokenize(char *);
-void sub_tokenize(char *);
+void paren_tokenize(char *, struct NODE *);
+void pow_tokenize(char *, struct NODE *);
+void mul_tokenize(char *, struct NODE *);
+void fdiv_tokenize(char *, struct NODE *);
+void div_tokenize(char *, struct NODE *);
+void mod_tokenize(char *, struct NODE *);
+void plus_tokenize(char *, struct NODE *);
+void sub_tokenize(char *, struct NODE *);
 
 // globals
 struct NODE head = { NULL, NULL, NULL };
@@ -36,7 +39,7 @@ int main(int argc, char ** argv) {
     printf("\n-  - -- ---> START STRING INPUT\n"
            "'%s'\n"
            "-  - -- ---> END STRING INPUT\n", input_file_on_heap);
-    struct NAMED_TOKEN * expr_head = tokenize(input_file_on_heap, NULL);
+    struct NAMED_TOKEN * expr_head = tokenize(input_file_on_heap, &head);
     printf ("\n");
     printf("-  - -- ---> START TOKENIZED OUTPUT\n");
     printExpr(expr_head);
@@ -56,27 +59,39 @@ char * read_in(FILE * input_file_ptr) {
     return input_file_on_heap;
 }
 
-struct NAMED_TOKEN * tokenize(char * raw_input_expr, struct NAMED_TOKEN * lh) {
+/*** TOKENIZATION ***/
+struct NAMED_TOKEN * tokenize(char * raw_input_expr, struct NODE * node) {
     /*** parenthesis pass ***/
-    paren_tokenize(raw_input_expr);
+    paren_tokenize(raw_input_expr, node);
+    // printf("raw_input_expr after paren_tokenize: %s\n", raw_input_expr);
     /*** exponentiation pass ***/
-    pow_tokenize(raw_input_expr);
+    pow_tokenize(raw_input_expr, node);
+    // printf("raw_input_expr after pow_tokenize: %s\n", raw_input_expr);
     /*** multiplication pass ***/
-    mul_tokenize(raw_input_expr);
+    mul_tokenize(raw_input_expr, node);
+    // printf("raw_input_expr after mul_tokenize: %s\n", raw_input_expr);
+    /*** floor division pass ***/
+    fdiv_tokenize(raw_input_expr, node);
+    // printf("raw_input_expr after fdiv_tokenize: %s\n", raw_input_expr);
     /*** division pass ***/
-    div_tokenize(raw_input_expr);
+    div_tokenize(raw_input_expr, node);
+    // printf("raw_input_expr after div_tokenize: %s\n", raw_input_expr);
+    /*** modulo pass ***/
+    mod_tokenize(raw_input_expr, node);
+    // printf("raw_input_expr after mod_tokenize: %s\n", raw_input_expr);
     /*** plus pass ***/
-    plus_tokenize(raw_input_expr);
+    plus_tokenize(raw_input_expr, node);
+    // printf("raw_input_expr after plus_tokenize: %s\n", raw_input_expr);
     /*** sub pass ***/
-    sub_tokenize(raw_input_expr);
-
-    struct NAMED_TOKEN * ret = nodeFromIndex(raw_input_expr, &head)->token;
-    freeList(head.next); // you don't free the head because its not on the heap
+    sub_tokenize(raw_input_expr, node);
+    // printf("raw_input_expr after sub_tokenize: %s\n", raw_input_expr);
+    struct NAMED_TOKEN * ret = nodeFromIndex(raw_input_expr, node)->token;
+    freeList(node->next); // you don't free the head because its not on the heap
     return ret;
 }
 
 struct NAMED_TOKEN * const_tokenize(char * raw_input_expr) {
-    int const_length = strcspn(raw_input_expr, "+-*/()abcdefghijklmnopqrstuvwxyz\a"); // length till non-int character
+    int const_length = strcspn(raw_input_expr, "+-*/%=><()abcdefghijklmnopqrstuvwxyz\a"); // length till non-int character
     long str_length = strlen(raw_input_expr);
     long int value = 0;
     for (int i = 0; i < const_length; i++) {
@@ -122,21 +137,54 @@ struct NAMED_TOKEN * const_tokenize(char * raw_input_expr) {
     return nt;
 }
 
-void paren_tokenize(char * raw_input_expr) {
+void paren_tokenize(char * raw_input_expr, struct NODE * head) {
     int length = strlen(raw_input_expr);
+    char * open_parens[100]; // If you have more than 100 nested parenthesis in a single expression, I don't want you coding, let alone using my tool
+    struct PAREN_PAIR pairs[100] = { {NULL, NULL, 0} };
     int count = 0;
+    int open_parens_idx = 0;
+    int pairs_idx = 0;
     for (int i = 0; i < length; i++) {
         if (raw_input_expr[i] == '(') {
+            open_parens[open_parens_idx] = raw_input_expr+i;
+            open_parens_idx++;
             count--;
         } else if (raw_input_expr[i] == ')') {
             assert(count < 0);
+            pairs[pairs_idx].beginning = open_parens[open_parens_idx-1];
+            pairs[pairs_idx].ending = raw_input_expr+i;
+            pairs[pairs_idx].depth = count;
+            pairs_idx++;
+            open_parens_idx--;
             count++;
         }
     }
-
+    assert(count == 0);
+    for (int i = 99; i >= 0; i--) {
+        if (pairs[i].depth == -1) {
+            int subexpr_length = pairs[i].ending - pairs[i].beginning;
+            char subexpr[subexpr_length];
+            memmove(subexpr, pairs[i].beginning+1, subexpr_length-1);
+            subexpr[subexpr_length-1] = '\0';
+            struct NODE subexpr_head = { NULL, NULL, NULL };
+            struct NAMED_TOKEN * nt = tokenize(subexpr, &subexpr_head);
+            struct NODE * node = malloc(sizeof(struct NODE));
+            node->token = nt;
+            node->index = pairs[i].beginning;
+            insertNode(node, head);
+            int offset = pairs[i].beginning - raw_input_expr;
+            int length = strlen(raw_input_expr);
+            raw_input_expr[offset] = '\a';
+            for (int i = offset+1; i < (length - subexpr_length + 1); i++) {
+                raw_input_expr[i] = raw_input_expr[i+subexpr_length];
+            }
+            raw_input_expr[1 + length - subexpr_length] = '\0';
+            shiftNPastIndex(pairs[i].beginning, subexpr_length, head);
+        }
+    }
 }
 
-void pow_tokenize(char * raw_input_expr) {
+void pow_tokenize(char * raw_input_expr, struct NODE * head) {
     char * r = strstr(raw_input_expr, "**");
     while (r) {
         int length = strlen(raw_input_expr);
@@ -163,39 +211,39 @@ void pow_tokenize(char * raw_input_expr) {
         nt->token = t;
         t->Pow = pow;
         if (*statement_start == '\a' && *statement_end == '\a') {
-            pow->lh = tokenFromIndex(statement_start, &head);
-            pow->rh = tokenFromIndex(statement_end, &head);
-            struct NODE * ptr = nodeFromIndex(statement_start, &head);
+            pow->lh = tokenFromIndex(statement_start, head);
+            pow->rh = tokenFromIndex(statement_end, head);
+            struct NODE * ptr = nodeFromIndex(statement_start, head);
             ptr->index = NULL; // -1 denotes a sub expr token (that is a token which is wrapped by an outer token)
-            ptr = nodeFromIndex(statement_end, &head);
+            ptr = nodeFromIndex(statement_end, head);
             ptr->index = NULL;
         } else if (*statement_start == '\a') {
-            pow->lh = tokenFromIndex(statement_start, &head);
-            pow->rh = const_tokenize(r + 1);
-            struct NODE * ptr = nodeFromIndex(statement_start, &head);
+            pow->lh = tokenFromIndex(statement_start, head);
+            pow->rh = const_tokenize(r + 2);
+            struct NODE * ptr = nodeFromIndex(statement_start, head);
             ptr->index = NULL; // -1 denotes a sub expr token (that is a token which is wrapped by an outer token)
         } else if (*statement_end == '\a') {
             pow->lh = const_tokenize(statement_start);
-            pow->rh = tokenFromIndex(statement_end, &head);
-            struct NODE * ptr = nodeFromIndex(statement_end, &head);
+            pow->rh = tokenFromIndex(statement_end, head);
+            struct NODE * ptr = nodeFromIndex(statement_end, head);
             ptr->index = NULL; // -1 denotes a sub expr token (that is a token which is wrapped by an outer token)
         } else {
             pow->lh = const_tokenize(statement_start);
-            pow->rh = const_tokenize(r + 1);
+            pow->rh = const_tokenize(r + 2);
         }
         n->token = nt;
-        insertNode(n, &head);
+        insertNode(n, head);
         raw_input_expr[offset] = '\a';
         for (int i = offset+1; i < (length - statement_length + 1); i++) {
             raw_input_expr[i] = raw_input_expr[i+statement_length-1];
         }
         raw_input_expr[1 + length - statement_length] = '\0';
-        shiftNPastIndex(statement_start, statement_length-1, &head);
+        shiftNPastIndex(statement_start, statement_length-1, head);
         r = strstr(raw_input_expr, "**");
     }
 }
 
-void mul_tokenize(char * raw_input_expr) {
+void mul_tokenize(char * raw_input_expr, struct NODE * head) {
     char * r = strstr(raw_input_expr, "*");
     while (r) {
         int length = strlen(raw_input_expr);
@@ -222,39 +270,98 @@ void mul_tokenize(char * raw_input_expr) {
         nt->token = t;
         t->Mul = mul;
         if (*statement_start == '\a' && *statement_end == '\a') {
-            mul->lh = tokenFromIndex(statement_start, &head);
-            mul->rh = tokenFromIndex(statement_end, &head);
-            struct NODE * ptr = nodeFromIndex(statement_start, &head);
+            mul->lh = tokenFromIndex(statement_start, head);
+            mul->rh = tokenFromIndex(statement_end, head);
+            struct NODE * ptr = nodeFromIndex(statement_start, head);
             ptr->index = NULL; // -1 denotes a sub expr token (that is a token which is wrapped by an outer token)
-            ptr = nodeFromIndex(statement_end, &head);
+            ptr = nodeFromIndex(statement_end, head);
             ptr->index = NULL;
         } else if (*statement_start == '\a') {
-            mul->lh = tokenFromIndex(statement_start, &head);
+            mul->lh = tokenFromIndex(statement_start, head);
             mul->rh = const_tokenize(r + 1);
-            struct NODE * ptr = nodeFromIndex(statement_start, &head);
+            struct NODE * ptr = nodeFromIndex(statement_start, head);
             ptr->index = NULL; // -1 denotes a sub expr token (that is a token which is wrapped by an outer token)
         } else if (*statement_end == '\a') {
             mul->lh = const_tokenize(statement_start);
-            mul->rh = tokenFromIndex(statement_end, &head);
-            struct NODE * ptr = nodeFromIndex(statement_end, &head);
+            mul->rh = tokenFromIndex(statement_end, head);
+            struct NODE * ptr = nodeFromIndex(statement_end, head);
             ptr->index = NULL; // -1 denotes a sub expr token (that is a token which is wrapped by an outer token)
         } else {
             mul->lh = const_tokenize(statement_start);
             mul->rh = const_tokenize(r + 1);
         }
         n->token = nt;
-        insertNode(n, &head);
+        insertNode(n, head);
         raw_input_expr[offset] = '\a';
         for (int i = offset+1; i < (length - statement_length + 1); i++) {
             raw_input_expr[i] = raw_input_expr[i+statement_length-1];
         }
         raw_input_expr[1 + length - statement_length] = '\0';
-        shiftNPastIndex(statement_start, statement_length-1, &head);
+        shiftNPastIndex(statement_start, statement_length-1, head);
         r = strstr(raw_input_expr, "*");
     }
 }
 
-void div_tokenize(char * raw_input_expr) {
+void fdiv_tokenize(char * raw_input_expr, struct NODE * head) {
+    char * r = strstr(raw_input_expr, "//");
+    while (r) {
+        int length = strlen(raw_input_expr);
+        char * ptr = r - 1;
+        while (strchr("0123456789\a", *ptr) != NULL && ptr > raw_input_expr) { ptr -= 1; }
+        char *statement_start = ptr;
+        if (!strchr("0123456789\a", *ptr)) {
+            statement_start += 1;
+        }
+        ptr = r + 2;
+        while (strchr("0123456789\a", *ptr) != NULL && ptr < (raw_input_expr+length-1)) { ptr += 1; }
+        char * statement_end = ptr;
+        if (!strchr("0123456789\a", *ptr)) {
+            statement_end -= 1;
+        }
+        int statement_length = 1 + statement_end - statement_start;
+        int offset = statement_start - raw_input_expr;
+        struct NODE * n = malloc(sizeof(struct NODE));
+        n->index = statement_start;
+        struct NAMED_TOKEN * nt  = malloc(sizeof(struct NAMED_TOKEN));
+        union TOKEN * t = malloc(sizeof(union TOKEN));
+        struct FDIV * fdiv = malloc(sizeof(struct FDIV));
+        strcpy((nt->name), "FDIV");
+        nt->token = t;
+        t->Fdiv = fdiv;
+        if (*statement_start == '\a' && *statement_end == '\a') {
+            fdiv->lh = tokenFromIndex(statement_start, head);
+            fdiv->rh = tokenFromIndex(statement_end, head);
+            struct NODE * ptr = nodeFromIndex(statement_start, head);
+            ptr->index = NULL; // -1 denotes a sub expr token (that is a token which is wrapped by an outer token)
+            ptr = nodeFromIndex(statement_end, head);
+            ptr->index = NULL;
+        } else if (*statement_start == '\a') {
+            fdiv->lh = tokenFromIndex(statement_start, head);
+            fdiv->rh = const_tokenize(r + 2);
+            struct NODE * ptr = nodeFromIndex(statement_start, head);
+            ptr->index = NULL; // -1 denotes a sub expr token (that is a token which is wrapped by an outer token)
+        } else if (*statement_end == '\a') {
+            fdiv->lh = const_tokenize(statement_start);
+            fdiv->rh = tokenFromIndex(statement_end, head);
+            struct NODE * ptr = nodeFromIndex(statement_end, head);
+            ptr->index = NULL; // -1 denotes a sub expr token (that is a token which is wrapped by an outer token)
+        } else {
+            fdiv->lh = const_tokenize(statement_start);
+            fdiv->rh = const_tokenize(r + 2);
+        }
+        n->token = nt;
+        insertNode(n, head);
+        raw_input_expr[offset] = '\a';
+        for (int i = offset+1; i < (length - statement_length + 1); i++) {
+            raw_input_expr[i] = raw_input_expr[i+statement_length-1];
+        }
+        raw_input_expr[1 + length - statement_length] = '\0';
+        shiftNPastIndex(statement_start, statement_length-1, head);
+        r = strstr(raw_input_expr, "//");
+    }
+}
+
+void div_tokenize(char * raw_input_expr, struct NODE * head) {
     char * r = strstr(raw_input_expr, "/");
     while (r) {
         int length = strlen(raw_input_expr);
@@ -281,39 +388,98 @@ void div_tokenize(char * raw_input_expr) {
         nt->token = t;
         t->Div = div;
         if (*statement_start == '\a' && *statement_end == '\a') {
-            div->lh = tokenFromIndex(statement_start, &head);
-            div->rh = tokenFromIndex(statement_end, &head);
-            struct NODE * ptr = nodeFromIndex(statement_start, &head);
+            div->lh = tokenFromIndex(statement_start, head);
+            div->rh = tokenFromIndex(statement_end, head);
+            struct NODE * ptr = nodeFromIndex(statement_start, head);
             ptr->index = NULL; // -1 denotes a sub expr token (that is a token which is wrapped by an outer token)
-            ptr = nodeFromIndex(statement_end, &head);
+            ptr = nodeFromIndex(statement_end, head);
             ptr->index = NULL;
         } else if (*statement_start == '\a') {
-            div->lh = tokenFromIndex(statement_start, &head);
+            div->lh = tokenFromIndex(statement_start, head);
             div->rh = const_tokenize(r + 1);
-            struct NODE * ptr = nodeFromIndex(statement_start, &head);
+            struct NODE * ptr = nodeFromIndex(statement_start, head);
             ptr->index = NULL; // -1 denotes a sub expr token (that is a token which is wrapped by an outer token)
         } else if (*statement_end == '\a') {
             div->lh = const_tokenize(statement_start);
-            div->rh = tokenFromIndex(statement_end, &head);
-            struct NODE * ptr = nodeFromIndex(statement_end, &head);
+            div->rh = tokenFromIndex(statement_end, head);
+            struct NODE * ptr = nodeFromIndex(statement_end, head);
             ptr->index = NULL; // -1 denotes a sub expr token (that is a token which is wrapped by an outer token)
         } else {
             div->lh = const_tokenize(statement_start);
             div->rh = const_tokenize(r + 1);
         }
         n->token = nt;
-        insertNode(n, &head);
+        insertNode(n, head);
         raw_input_expr[offset] = '\a';
         for (int i = offset+1; i < (length - statement_length + 1); i++) {
             raw_input_expr[i] = raw_input_expr[i+statement_length-1];
         }
         raw_input_expr[1 + length - statement_length] = '\0';
-        shiftNPastIndex(statement_start, statement_length-1, &head);
+        shiftNPastIndex(statement_start, statement_length-1, head);
         r = strstr(raw_input_expr, "/");
     }
 }
 
-void plus_tokenize(char * raw_input_expr) {
+void mod_tokenize(char * raw_input_expr, struct NODE * head) {
+    char * r = strstr(raw_input_expr, "%");
+    while (r) {
+        int length = strlen(raw_input_expr);
+        char * ptr = r - 1;
+        while (strchr("0123456789\a", *ptr) != NULL && ptr > raw_input_expr) { ptr -= 1; }
+        char *statement_start = ptr;
+        if (!strchr("0123456789\a", *ptr)) {
+            statement_start += 1;
+        }
+        ptr = r + 1;
+        while (strchr("0123456789\a", *ptr) != NULL && ptr < (raw_input_expr+length-1)) { ptr += 1; }
+        char * statement_end = ptr;
+        if (!strchr("0123456789\a", *ptr)) {
+            statement_end -= 1;
+        }
+        int statement_length = 1 + statement_end - statement_start;
+        int offset = statement_start - raw_input_expr;
+        struct NODE * n = malloc(sizeof(struct NODE));
+        n->index = statement_start;
+        struct NAMED_TOKEN * nt  = malloc(sizeof(struct NAMED_TOKEN));
+        union TOKEN * t = malloc(sizeof(union TOKEN));
+        struct MOD * mod = malloc(sizeof(struct MOD));
+        strcpy((nt->name), "MOD");
+        nt->token = t;
+        t->Mod = mod;
+        if (*statement_start == '\a' && *statement_end == '\a') {
+            mod->lh = tokenFromIndex(statement_start, head);
+            mod->rh = tokenFromIndex(statement_end, head);
+            struct NODE * ptr = nodeFromIndex(statement_start, head);
+            ptr->index = NULL; // -1 denotes a sub expr token (that is a token which is wrapped by an outer token)
+            ptr = nodeFromIndex(statement_end, head);
+            ptr->index = NULL;
+        } else if (*statement_start == '\a') {
+            mod->lh = tokenFromIndex(statement_start, head);
+            mod->rh = const_tokenize(r + 1);
+            struct NODE * ptr = nodeFromIndex(statement_start, head);
+            ptr->index = NULL; // -1 denotes a sub expr token (that is a token which is wrapped by an outer token)
+        } else if (*statement_end == '\a') {
+            mod->lh = const_tokenize(statement_start);
+            mod->rh = tokenFromIndex(statement_end, head);
+            struct NODE * ptr = nodeFromIndex(statement_end, head);
+            ptr->index = NULL; // -1 denotes a sub expr token (that is a token which is wrapped by an outer token)
+        } else {
+            mod->lh = const_tokenize(statement_start);
+            mod->rh = const_tokenize(r + 1);
+        }
+        n->token = nt;
+        insertNode(n, head);
+        raw_input_expr[offset] = '\a';
+        for (int i = offset+1; i < (length - statement_length + 1); i++) {
+            raw_input_expr[i] = raw_input_expr[i+statement_length-1];
+        }
+        raw_input_expr[1 + length - statement_length] = '\0';
+        shiftNPastIndex(statement_start, statement_length-1, head);
+        r = strstr(raw_input_expr, "%");
+    }
+}
+
+void plus_tokenize(char * raw_input_expr, struct NODE * head) {
     char * r = strstr(raw_input_expr, "+");
     while (r) {
         int length = strlen(raw_input_expr);
@@ -340,39 +506,39 @@ void plus_tokenize(char * raw_input_expr) {
         nt->token = t;
         t->Plus = plus;
         if (*statement_start == '\a' && *statement_end == '\a') {
-            plus->lh = tokenFromIndex(statement_start, &head);
-            plus->rh = tokenFromIndex(statement_end, &head);
-            struct NODE * ptr = nodeFromIndex(statement_start, &head);
+            plus->lh = tokenFromIndex(statement_start, head);
+            plus->rh = tokenFromIndex(statement_end, head);
+            struct NODE * ptr = nodeFromIndex(statement_start, head);
             ptr->index = NULL; // -1 denotes a sub expr token (that is a token which is wrapped by an outer token)
-            ptr = nodeFromIndex(statement_end, &head);
+            ptr = nodeFromIndex(statement_end, head);
             ptr->index = NULL;
         } else if (*statement_start == '\a') {
-            plus->lh = tokenFromIndex(statement_start, &head);
+            plus->lh = tokenFromIndex(statement_start, head);
             plus->rh = const_tokenize(r + 1);
-            struct NODE * ptr = nodeFromIndex(statement_start, &head);
+            struct NODE * ptr = nodeFromIndex(statement_start, head);
             ptr->index = NULL; // -1 denotes a sub expr token (that is a token which is wrapped by an outer token)
         } else if (*statement_end == '\a') {
             plus->lh = const_tokenize(statement_start);
-            plus->rh = tokenFromIndex(statement_end, &head);
-            struct NODE * ptr = nodeFromIndex(statement_end, &head);
+            plus->rh = tokenFromIndex(statement_end, head);
+            struct NODE * ptr = nodeFromIndex(statement_end, head);
             ptr->index = NULL; // -1 denotes a sub expr token (that is a token which is wrapped by an outer token)
         } else {
             plus->lh = const_tokenize(statement_start);
             plus->rh = const_tokenize(r + 1);
         }
         n->token = nt;
-        insertNode(n, &head);
+        insertNode(n, head);
         raw_input_expr[offset] = '\a';
         for (int i = offset+1; i < (length - statement_length + 1); i++) {
             raw_input_expr[i] = raw_input_expr[i+statement_length-1];
         }
         raw_input_expr[1 + length - statement_length] = '\0';
-        shiftNPastIndex(statement_start, statement_length-1, &head);
+        shiftNPastIndex(statement_start, statement_length-1, head);
         r = strstr(raw_input_expr, "+");
     }
 }
 
-void sub_tokenize(char * raw_input_expr) {
+void sub_tokenize(char * raw_input_expr, struct NODE * head) {
     char * r = strstr(raw_input_expr, "-");
     while (r) {
         int length = strlen(raw_input_expr);
@@ -399,37 +565,40 @@ void sub_tokenize(char * raw_input_expr) {
         nt->token = t;
         t->Sub = sub;
         if (*statement_start == '\a' && *statement_end == '\a') {
-            sub->lh = tokenFromIndex(statement_start, &head);
-            sub->rh = tokenFromIndex(statement_end, &head);
-            struct NODE * ptr = nodeFromIndex(statement_start, &head);
+            sub->lh = tokenFromIndex(statement_start, head);
+            sub->rh = tokenFromIndex(statement_end, head);
+            struct NODE * ptr = nodeFromIndex(statement_start, head);
             ptr->index = NULL; // -1 denotes a sub expr token (that is a token which is wrapped by an outer token)
-            ptr = nodeFromIndex(statement_end, &head);
+            ptr = nodeFromIndex(statement_end, head);
             ptr->index = NULL;
         } else if (*statement_start == '\a') {
-            sub->lh = tokenFromIndex(statement_start, &head);
+            sub->lh = tokenFromIndex(statement_start, head);
             sub->rh = const_tokenize(r + 1);
-            struct NODE * ptr = nodeFromIndex(statement_start, &head);
+            struct NODE * ptr = nodeFromIndex(statement_start, head);
             ptr->index = NULL; // -1 denotes a sub expr token (that is a token which is wrapped by an outer token)
         } else if (*statement_end == '\a') {
             sub->lh = const_tokenize(statement_start);
-            sub->rh = tokenFromIndex(statement_end, &head);
-            struct NODE * ptr = nodeFromIndex(statement_end, &head);
+            sub->rh = tokenFromIndex(statement_end, head);
+            struct NODE * ptr = nodeFromIndex(statement_end, head);
             ptr->index = NULL; // -1 denotes a sub expr token (that is a token which is wrapped by an outer token)
         } else {
             sub->lh = const_tokenize(statement_start);
             sub->rh = const_tokenize(r + 1);
         }
         n->token = nt;
-        insertNode(n, &head);
+        insertNode(n, head);
         raw_input_expr[offset] = '\a';
         for (int i = offset+1; i < (length - statement_length + 1); i++) {
             raw_input_expr[i] = raw_input_expr[i+statement_length-1];
         }
         raw_input_expr[1 + length - statement_length] = '\0';
-        shiftNPastIndex(statement_start, statement_length-1, &head);
+        shiftNPastIndex(statement_start, statement_length-1, head);
         r = strstr(raw_input_expr, "-");
     }
 }
+
+/*** PARSING ***/
+
 
 
 
