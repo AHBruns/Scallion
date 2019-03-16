@@ -2,6 +2,9 @@
 // Created by Alex Bruns on 3/9/19.
 //
 
+// library includes
+#include <string.h>
+
 // local includes
 #include "exprs.h"
 
@@ -18,4 +21,4 @@ struct PAREN_PAIR {
     char * ending;
     int depth;
 };
-#endif //SCALLION_ALEXBRUNSDATASTRUCTS_H
+#endif // SCALLION_ALEXBRUNSDATASTRUCTS_H
