@@ -21,4 +21,10 @@ struct PAREN_PAIR {
     char * ending;
     int depth;
 };
+
+// BINDINGS
+struct BINDING {
+    char name[79]; // if your variable names are longer than 79 characters you can go fuck yourself
+    struct NAMED_TOKEN * expr;
+};
 #endif // SCALLION_ALEXBRUNSDATASTRUCTS_H

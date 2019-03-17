@@ -32,18 +32,18 @@ struct DIV     { struct NAMED_TOKEN * lh; struct NAMED_TOKEN * rh; };
 struct FDIV    { struct NAMED_TOKEN * lh; struct NAMED_TOKEN * rh; };
 struct MUL     { struct NAMED_TOKEN * lh; struct NAMED_TOKEN * rh; };
 struct POW     { struct NAMED_TOKEN * lh; struct NAMED_TOKEN * rh; };
-struct FUNC1    {
+struct FUNC1   {
     char * name;
     struct NAMED_TOKEN * arg1;
     struct NAMED_TOKEN * exprs; // should be an SEQ
 };
-struct FUNC2    {
+struct FUNC2   {
     char * name;
     struct NAMED_TOKEN * arg1;
     struct NAMED_TOKEN * arg2;
     struct NAMED_TOKEN * exprs;
 };
-struct FUNC3    {
+struct FUNC3   {
     char * name;
     struct NAMED_TOKEN * arg1;
     struct NAMED_TOKEN * arg2;
@@ -83,7 +83,6 @@ union TOKEN {
     struct FUNC1 *Func1; // TODO
     struct FUNC2 *Func2; // TODO
     struct FUNC3 *Func3; // TODO
-
 };
 
 struct NAMED_TOKEN {

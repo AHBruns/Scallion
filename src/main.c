@@ -18,13 +18,20 @@
 #include "exprUtils.h"
 #include "results.h"
 
+// globals
+struct NODE HEAD = { NULL, NULL, NULL };
+const char * OP_CHARS = "+-/%*^&!><=&|~^)({}][";
+const int MAX_LINES = 100;
+const int MAX_CONCURRENT_BINDINGS = 100;
+
 // prototypes
 char * read_in(FILE *);
 char ** sequencize(char *);
-struct NAMED_TOKEN * tokenize(char *, struct NODE *);
+struct NAMED_TOKEN * tokenize(char *, struct NODE *, struct BINDING * env[MAX_CONCURRENT_BINDINGS]);
 struct NAMED_TOKEN * const_tokenize(char *);
-void binding_tokenize(char *, struct NODE *);
-void paren_tokenize(char *, struct NODE *);
+void inject_env(char *, struct NODE *, struct BINDING * env[MAX_CONCURRENT_BINDINGS]);
+void new_binding_tokenize(char *, struct NODE *, struct BINDING * env[MAX_CONCURRENT_BINDINGS]);
+void paren_tokenize(char *, struct NODE *, struct BINDING * env[MAX_CONCURRENT_BINDINGS]);
 void pow_tokenize(char *, struct NODE *);
 void mul_tokenize(char *, struct NODE *);
 void fdiv_tokenize(char *, struct NODE *);
@@ -32,12 +39,13 @@ void div_tokenize(char *, struct NODE *);
 void mod_tokenize(char *, struct NODE *);
 void plus_tokenize(char *, struct NODE *);
 void sub_tokenize(char *, struct NODE *);
-//int parse(struct NAMED_TOKEN *);
-
-// globals
-struct NODE HEAD = { NULL, NULL, NULL };
-char * OP_CHARS = "+-/%*^&!><=&|~^";
-int MAX_LINES = 100;
+struct NAMED_RESULT * simplify(struct NAMED_TOKEN *);
+void const_parse(struct NAMED_RESULT *, struct NAMED_RESULT *);
+int type_2_int(struct NAMED_RESULT *);
+void plus_parse(struct NAMED_RESULT *, struct NAMED_RESULT *);
+void sub_parse(struct NAMED_TOKEN *, struct NAMED_RESULT *);
+void mod_parse(struct NAMED_TOKEN *, struct NAMED_RESULT *);
+void div_parse(struct NAMED_TOKEN *, struct NAMED_RESULT *);
 
 int main(int argc, char ** argv) {
     assert(argc == 2);
@@ -46,17 +54,23 @@ int main(int argc, char ** argv) {
     char * input_file_on_heap = read_in(input_file_ptr);
     char ** expr_sequence = sequencize(input_file_on_heap);
     int i = 0;
+    struct BINDING * env[MAX_CONCURRENT_BINDINGS] = {0};
     while (i < MAX_LINES && (long) expr_sequence[i] != 0) {
         printf("\n-  - -- ---> START INPUT LINE\n"
                "%s\n"
                "-  - -- ---> END INPUT LINE\n", expr_sequence[i]);
-        struct NAMED_TOKEN *expr_head = tokenize(expr_sequence[i], &HEAD);
+        struct NAMED_TOKEN *expr_head = tokenize(expr_sequence[i], &HEAD, env);
         printf("\n");
         printf("-  - -- ---> START TOKENIZED LINE\n");
         printExpr(expr_head);
         printf("\n-  - -- ---> END TOKENIZED LINE\n\n");
+        free(expr_sequence[i]);
+        i++;
+        HEAD.index = NULL;
+        HEAD.token = NULL;
+        HEAD.next = NULL;
     }
-    free(input_file_on_heap);
+    free(expr_sequence);
     return 0;
 }
 
@@ -71,6 +85,9 @@ char * read_in(FILE * input_file_ptr) {
     fclose(input_file_ptr);
     return input_file_on_heap;
 }
+
+
+// TODO | break parsing and tokenization in stand-alone header files
 
 /*** TOKENIZATION ***/
 char ** sequencize(char * raw_input_str) {
@@ -106,36 +123,44 @@ char ** sequencize(char * raw_input_str) {
         }
         ptr2 = ptr1;
     }
+//    for (int i = 0; i < MAX_LINES; i++) {
+//        printf("%s\n", lines[i]);
+//    }
     return lines;
 }
 
-struct NAMED_TOKEN * tokenize(char * raw_input_expr, struct NODE * node) {
-    /*** binding pass ***/
-    binding_tokenize(raw_input_expr, node);
+struct NAMED_TOKEN * tokenize(char * raw_input_expr, struct NODE * node, struct BINDING * env[MAX_CONCURRENT_BINDINGS]) {
+    //printf("raw_input_expr initially: %s\n", raw_input_expr);
+    /*** inject bindings ***/
+    inject_env(raw_input_expr, node, env);
+    //printf("raw_input_expr after inject_env: %s\n", raw_input_expr);
     /*** parenthesis pass ***/
-    paren_tokenize(raw_input_expr, node);
-    // printf("raw_input_expr after paren_tokenize: %s\n", raw_input_expr);
+    paren_tokenize(raw_input_expr, node, env);
+    //printf("raw_input_expr after paren_tokenize: %s\n", raw_input_expr);
     /*** exponentiation pass ***/
     pow_tokenize(raw_input_expr, node);
-    // printf("raw_input_expr after pow_tokenize: %s\n", raw_input_expr);
+    //printf("raw_input_expr after pow_tokenize: %s\n", raw_input_expr);
     /*** multiplication pass ***/
     mul_tokenize(raw_input_expr, node);
-    // printf("raw_input_expr after mul_tokenize: %s\n", raw_input_expr);
+    //printf("raw_input_expr after mul_tokenize: %s\n", raw_input_expr);
     /*** floor division pass ***/
     fdiv_tokenize(raw_input_expr, node);
-    // printf("raw_input_expr after fdiv_tokenize: %s\n", raw_input_expr);
+    //printf("raw_input_expr after fdiv_tokenize: %s\n", raw_input_expr);
     /*** division pass ***/
     div_tokenize(raw_input_expr, node);
-    // printf("raw_input_expr after div_tokenize: %s\n", raw_input_expr);
+    //printf("raw_input_expr after div_tokenize: %s\n", raw_input_expr);
     /*** modulo pass ***/
     mod_tokenize(raw_input_expr, node);
-    // printf("raw_input_expr after mod_tokenize: %s\n", raw_input_expr);
+    //printf("raw_input_expr after mod_tokenize: %s\n", raw_input_expr);
     /*** plus pass ***/
     plus_tokenize(raw_input_expr, node);
-    // printf("raw_input_expr after plus_tokenize: %s\n", raw_input_expr);
+    //printf("raw_input_expr after plus_tokenize: %s\n", raw_input_expr);
     /*** sub pass ***/
     sub_tokenize(raw_input_expr, node);
-    // printf("raw_input_expr after sub_tokenize: %s\n", raw_input_expr);
+    //printf("raw_input_expr after sub_tokenize: %s\n", raw_input_expr);
+    /*** binding pass ***/
+    new_binding_tokenize(raw_input_expr, node, env);
+    //printf("raw_input_expr after new_binding_tokenize: %s\n", raw_input_expr);
     struct NAMED_TOKEN * ret = nodeFromIndex(raw_input_expr, node)->token;
     freeList(node->next); // you don't free the head because its not on the heap
     return ret;
@@ -188,21 +213,60 @@ struct NAMED_TOKEN * const_tokenize(char * raw_input_expr) {
     return nt;
 }
 
-// TODO | implement actual env rather than just destroying bindings
-void binding_tokenize(char * raw_input_expr, struct NODE * head) {
-    printf("before: %s\n", raw_input_expr);
+void inject_env(char * raw_input_expr, struct NODE * head, struct BINDING * env[MAX_CONCURRENT_BINDINGS]) {
+    int i = 0;
+    while (i < MAX_CONCURRENT_BINDINGS && env[i] != NULL) {
+        char * name = env[i]->name;
+        int name_length = strlen(name);
+        char * loc = strstr(raw_input_expr, name);
+        while (loc != NULL) {
+            if (strchr(OP_CHARS, *(loc-1)) != NULL && (strchr(OP_CHARS, *(loc+name_length)) != NULL || *(loc+name_length) == '\0')) {
+                int offset = loc - raw_input_expr;
+                struct NODE * n = malloc(sizeof(struct NODE));
+                n->index = loc;
+                n->token = env[i]->expr;
+                insertNode(n, head);
+                raw_input_expr[offset] = '\a';
+                int length = strlen(raw_input_expr);
+                for (int j = offset+1; j < (length - name_length + 1); j++) {
+                    raw_input_expr[j] = raw_input_expr[j+name_length-1];
+                }
+                raw_input_expr[1 + length - name_length] = '\0';
+                shiftNPastIndex(loc, name_length, head);
+            }
+            loc = strstr(raw_input_expr, name);
+        }
+        i++;
+    }
+}
+
+void new_binding_tokenize(char * raw_input_expr, struct NODE * head, struct BINDING * env[MAX_CONCURRENT_BINDINGS]) {
     char * binding_loc = strchr(raw_input_expr, '=');
+    int statement_length = 0;
     if (!binding_loc) {
         return;
     } else {
         if (strchr(OP_CHARS, binding_loc[1]) || strchr(OP_CHARS, *(binding_loc-1)))
             return;
+        statement_length = (binding_loc - raw_input_expr);
+        char * name = (char *)calloc(statement_length+1, sizeof(char));
+        assert(name!=NULL);
+        memmove(name, raw_input_expr, statement_length);
+        name[statement_length] = '\0';
         memmove(raw_input_expr, binding_loc+1, strlen(binding_loc));
+        shiftNPastIndex(raw_input_expr, statement_length+1, head);
+        int i = 0;
+        while (i < MAX_CONCURRENT_BINDINGS && env[i] != NULL) i++;
+        struct BINDING * bd = malloc(sizeof(struct BINDING));
+        assert(bd != NULL);
+        bd->expr = nodeFromIndex(raw_input_expr, head)->token;
+        strcpy(bd->name, name);
+        env[i] = bd;
     }
-    printf("after: %s\n", raw_input_expr);
+    return;
 }
 
-void paren_tokenize(char * raw_input_expr, struct NODE * head) {
+void paren_tokenize(char * raw_input_expr, struct NODE * head, struct BINDING * env[MAX_CONCURRENT_BINDINGS]) {
     int length = strlen(raw_input_expr);
     char * open_parens[100]; // If you have more than 100 nested parenthesis in a single expression, I don't want you coding, let alone using my tool
     struct PAREN_PAIR pairs[100] = { {NULL, NULL, 0} };
@@ -232,7 +296,9 @@ void paren_tokenize(char * raw_input_expr, struct NODE * head) {
             memmove(subexpr, pairs[i].beginning+1, subexpr_length-1);
             subexpr[subexpr_length-1] = '\0';
             struct NODE subexpr_head = { NULL, NULL, NULL };
-            struct NAMED_TOKEN * nt = tokenize(subexpr, &subexpr_head);
+            struct BINDING * envcpy[MAX_CONCURRENT_BINDINGS];
+            memmove(envcpy, env, MAX_CONCURRENT_BINDINGS * sizeof(struct BINDING *));
+            struct NAMED_TOKEN * nt = tokenize(subexpr, &subexpr_head, envcpy);
             struct NODE * node = malloc(sizeof(struct NODE));
             node->token = nt;
             node->index = pairs[i].beginning;
@@ -663,14 +729,385 @@ void sub_tokenize(char * raw_input_expr, struct NODE * head) {
 }
 
 /*** PARSING ***/
-//int parse(struct NAMED_TOKEN * root) { // TODO : add env
-//    int sig = atoi(root->name);
-//    int const_int = atoi("CONST");
-//    int plus_int = atoi("PLUS");
-//    int sub_int = atoi("SUB");
-//    switch (sig) {
-//        case (const_int): return (root->token->Const->v);
-//        case (plus_int): return (parse (root->token->Plus->lh) + parse (root->token->Plus->rh));
-//        case (sub_int): return (parse (root->token->Sub->lh) - parse (root->token->Sub->rh));
-//    }
-//}
+struct NAMED_RESULT * simplify(struct NAMED_TOKEN * tt) {
+    struct NAMED_RESULT * nr = malloc(sizeof(struct NAMED_RESULT *));
+    if (strcmp(tt->name, "CONST") == 0) {
+        const_parse(tt, nr);
+    } else if (strcmp(tt->name, "PLUS") == 0) {
+        plus_parse(tt, nr);
+    } else if (strcmp(tt->name, "SUB") == 0) {
+        sub_parse(tt, nr);
+    } else if (strcmp(tt->name, "MOD") == 0) {
+        mod_parse(tt, nr);
+    }
+    return nr;
+}
+
+void const_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
+    strcpy(nr->name, "R_INT");
+    nr->result = tt->token->Const->v;
+}
+
+int type_2_int(struct NAMED_RESULT * r) {
+    if (strcmp(r->name, "R_FLOAT") == 0) {
+        return 0;
+    } else if (strcmp(r->name, "R_INT") == 0) {
+        return 1;
+    } else if (strcmp(r->name, "R_CHAR") == 0) {
+        return 2;
+    } else if (strcmp(r->name, "R_BOOL") == 0) {
+        return 3;
+    } else if (strcmp(r->name, "R_STRING") == 0) {
+        return 4;
+    } else if (strcmp(r->name, "R_LIST") == 0) {
+        return 5;
+    } else {
+        return -1;
+    }
+}
+
+void plus_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
+    struct NAMED_RESULT * lhr = simplify(tt->token->Plus->lh);
+    struct NAMED_RESULT * rhr = simplify(tt->token->Plus->rh);
+    int lhrt = type_2_int(lhr);
+    int rhrt = type_2_int(rhr);
+    assert(lhrt < 4); // both args must be arith types (for now, implicit conversion will be implemented later)
+    assert(rhrt < 4);
+    assert(lhrt >= 0); // check for unknown types
+    assert(rhrt >= 0);
+    switch (lhrt) {
+        case 0:
+            strcpy(nr->name, "R_FLOAT");
+            switch (rhrt) {
+                case 0:
+                    nr->result->Float->v = lhr->result->Float->v + rhr->result->Float->v;
+                    break;
+                case 1:
+                    // implicityly converts the rh int arg to a float
+                    nr->result->Float->v = lhr->result->Float->v + rhr->result->Int->v;
+                    break;
+                case 2:
+                    // implicitly converts the rh char arg to a float
+                    nr->result->Float->v = lhr->result->Float->v + rhr->result->Char->v;
+                    break;
+                case 3:
+                    // implicitly converts the rh bool arg to either the float 0.0 or 1.0
+                    nr->result->Float->v = lhr->result->Float->v + rhr->result->Bool->v;
+                    break;
+            }
+            break;
+        case 1:
+            strcpy(nr->name, "R_INT");
+            switch (rhrt) {
+                case 0:
+                    // implicitly converts the rh arg from an int to a float
+                    nr->result->Float->v = lhr->result->Int->v + rhr->result->Float->v;
+                    break;
+                case 1:
+                    nr->result->Int->v = lhr->result->Int->v + rhr->result->Int->v;
+                    break;
+                case 2:
+                    // implicitly converts the rh arg from a char to an int
+                    nr->result->Int->v = lhr->result->Int->v + rhr->result->Char->v;
+                    break;
+                case 3:
+                    // implicitly converts the lh arg from a bool to an int whose value is either '000...001' or '000...000'
+                    nr->result->Int->v = lhr->result->Int->v + rhr->result->Bool->v;
+                    break;
+            }
+            break;
+        case 2:
+            strcpy(nr->name, "R_CHAR");
+            switch (rhrt) {
+                case 0:
+                    // implicitly converts the lh arg from a char to a float
+                    nr->result->Float->v = lhr->result->Char->v + rhr->result->Float->v;
+                    break;
+                case 1:
+                    // implicitly converts the lh arg from a char to an int
+                    nr->result->Int->v = lhr->result->Char->v + rhr->result->Int->v;
+                    break;
+                case 2:
+                    nr->result->Char->v = lhr->result->Char->v + rhr->result->Char->v;
+                    break;
+                case 3:
+                    // implicitly converts the rh arg from a bool to a char whose value is either '00000001' or '00000000'
+                    nr->result->Char->v = lhr->result->Char->v + rhr->result->Bool->v;
+                    break;
+            }
+            break;
+        case 3:
+            strcpy(nr->name, "R_BOOL");
+            switch (rhrt) {
+                case 0:
+                    // implicitly convert the lh bool arg to a float whose value is 0.0 or 1.0
+                    nr->result->Float->v = lhr->result->Bool->v + rhr->result->Float->v;
+                    break;
+                case 1:
+                    // implicitly convert the lh bool arg to an int whose value is '000...001' or '000...000'
+                    nr->result->Int->v = lhr->result->Bool->v + rhr->result->Int->v;
+                    break;
+                case 2:
+                    // implicitly convert the lh bool arg to a char whose value is '00000001' or '00000000'
+                    nr->result->Char->v = lhr->result->Bool->v + rhr->result->Char->v;
+                    break;
+                case 3:
+                    // implicitly converts the + operator to an & operator
+                    nr->result->Bool->v = lhr->result->Bool->v & rhr->result->Bool->v;
+                    break;
+            }
+            break;
+    }
+}
+
+void sub_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
+    struct NAMED_RESULT * lhr = simplify(tt->token->Plus->lh);
+    struct NAMED_RESULT * rhr = simplify(tt->token->Plus->rh);
+    int lhrt = type_2_int(lhr);
+    int rhrt = type_2_int(rhr);
+    assert(lhrt < 4); // both args must be arith types (for now, implicit conversion will be implemented later)
+    assert(rhrt < 4);
+    assert(lhrt >= 0); // check for unknown types
+    assert(rhrt >= 0);
+    switch (lhrt) {
+        case 0:
+            strcpy(nr->name, "R_FLOAT");
+            switch (rhrt) {
+                case 0:
+                    nr->result->Float->v = lhr->result->Float->v - rhr->result->Float->v;
+                    break;
+                case 1:
+                    // implicityly converts the rh int arg to a float
+                    nr->result->Float->v = lhr->result->Float->v - rhr->result->Int->v;
+                    break;
+                case 2:
+                    // implicitly converts the rh char arg to a float
+                    nr->result->Float->v = lhr->result->Float->v - rhr->result->Char->v;
+                    break;
+                case 3:
+                    // implicitly converts the rh bool arg to either the float 0.0 or 1.0
+                    nr->result->Float->v = lhr->result->Float->v - rhr->result->Bool->v;
+                    break;
+            }
+            break;
+        case 1:
+            strcpy(nr->name, "R_INT");
+            switch (rhrt) {
+                case 0:
+                    // implicitly converts the rh arg from an int to a float
+                    nr->result->Float->v = lhr->result->Int->v - rhr->result->Float->v;
+                    break;
+                case 1:
+                    nr->result->Int->v = lhr->result->Int->v - rhr->result->Int->v;
+                    break;
+                case 2:
+                    // implicitly converts the rh arg from a char to an int
+                    nr->result->Int->v = lhr->result->Int->v - rhr->result->Char->v;
+                    break;
+                case 3:
+                    // implicitly converts the lh arg from a bool to an int whose value is either '000...001' or '000...000'
+                    nr->result->Int->v = lhr->result->Int->v - rhr->result->Bool->v;
+                    break;
+            }
+            break;
+        case 2:
+            strcpy(nr->name, "R_CHAR");
+            switch (rhrt) {
+                case 0:
+                    // implicitly converts the lh arg from a char to a float
+                    nr->result->Float->v = lhr->result->Char->v - rhr->result->Float->v;
+                    break;
+                case 1:
+                    // implicitly converts the lh arg from a char to an int
+                    nr->result->Int->v = lhr->result->Char->v - rhr->result->Int->v;
+                    break;
+                case 2:
+                    nr->result->Char->v = lhr->result->Char->v - rhr->result->Char->v;
+                    break;
+                case 3:
+                    // implicitly converts the rh arg from a bool to a char whose value is either '00000001' or '00000000'
+                    nr->result->Char->v = lhr->result->Char->v - rhr->result->Bool->v;
+                    break;
+            }
+            break;
+        case 3:
+            strcpy(nr->name, "R_BOOL");
+            switch (rhrt) {
+                case 0:
+                    // implicitly convert the lh bool arg to a float whose value is 0.0 or 1.0
+                    nr->result->Float->v = lhr->result->Bool->v - rhr->result->Float->v;
+                    break;
+                case 1:
+                    // implicitly convert the lh bool arg to an int whose value is '000...001' or '000...000'
+                    nr->result->Int->v = lhr->result->Bool->v - rhr->result->Int->v;
+                    break;
+                case 2:
+                    // implicitly convert the lh bool arg to a char whose value is '00000001' or '00000000'
+                    nr->result->Char->v = lhr->result->Bool->v - rhr->result->Char->v;
+                    break;
+                case 3:
+                    // undefined behavior for subtracting a bool from a bool
+                    assert(lhrt != 3 || rhrt != 3);
+                    break;
+            }
+            break;
+    }
+}
+
+void mod_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
+    struct NAMED_RESULT * lhr = simplify(tt->token->Plus->lh);
+    struct NAMED_RESULT * rhr = simplify(tt->token->Plus->rh);
+    int lhrt = type_2_int(lhr);
+    int rhrt = type_2_int(rhr);
+    assert(lhrt < 4); // both args must be arith types (for now, implicit conversion will be implemented later)
+    assert(rhrt < 4);
+    assert(lhrt >= 0); // check for unknown types
+    assert(rhrt >= 0);
+    switch (lhrt) {
+        case 0:
+            strcpy(nr->name, "R_FLOAT");
+            // calling this undefined for now. will implement floating point mod later.
+            assert(lhrt != 0 && rhrt != 0);
+            break;
+        case 1:
+            strcpy(nr->name, "R_INT");
+            switch (rhrt) {
+                case 0:
+                    // calling this undefined for now. will implement floating point mod later.
+                    assert(lhrt != 0 && rhrt != 0);
+                    break;
+                case 1:
+                    nr->result->Int->v = lhr->result->Int->v % rhr->result->Int->v;
+                    break;
+                case 2:
+                    // implicitly converts the rh arg from a char to an int
+                    nr->result->Int->v = lhr->result->Int->v % rhr->result->Char->v;
+                    break;
+                case 3:
+                    // implicitly converts the lh arg from a bool to an int whose value is either '000...001' or '000...000'
+                    nr->result->Int->v = lhr->result->Int->v % rhr->result->Bool->v;
+                    break;
+            }
+            break;
+        case 2:
+            strcpy(nr->name, "R_CHAR");
+            switch (rhrt) {
+                case 0:
+                    // calling this undefined for now. will implement floating point mod later.
+                    assert(lhrt != 0 && rhrt != 0);
+                    break;
+                case 1:
+                    // implicitly converts the lh arg from a char to an int
+                    nr->result->Int->v = lhr->result->Char->v % rhr->result->Int->v;
+                    break;
+                case 2:
+                    nr->result->Char->v = lhr->result->Char->v % rhr->result->Char->v;
+                    break;
+                case 3:
+                    // implicitly converts the rh arg from a bool to a char whose value is either '00000001' or '00000000'
+                    nr->result->Char->v = lhr->result->Char->v % rhr->result->Bool->v;
+                    break;
+            }
+            break;
+        case 3:
+            strcpy(nr->name, "R_BOOL");
+            switch (rhrt) {
+                case 0:
+                    // calling this undefined for now. will implement floating point mod later.
+                    assert(lhrt != 0 && rhrt != 0);
+                    break;
+                case 1:
+                    // implicitly convert the lh bool arg to an int whose value is '000...001' or '000...000'
+                    nr->result->Int->v = lhr->result->Bool->v % rhr->result->Int->v;
+                    break;
+                case 2:
+                    // implicitly convert the lh bool arg to a char whose value is '00000001' or '00000000'
+                    nr->result->Char->v = lhr->result->Bool->v % rhr->result->Char->v;
+                    break;
+                case 3:
+                    // undefined behavior for modding a bool with a bool
+                    assert(lhrt != 3 || rhrt != 3);
+                    break;
+            }
+            break;
+    }
+}
+
+void div_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
+    struct NAMED_RESULT * lhr = simplify(tt->token->Plus->lh);
+    struct NAMED_RESULT * rhr = simplify(tt->token->Plus->rh);
+    int lhrt = type_2_int(lhr);
+    int rhrt = type_2_int(rhr);
+    assert(lhrt < 4); // both args must be arith types (for now, implicit conversion will be implemented later)
+    assert(rhrt < 4);
+    assert(lhrt >= 0); // check for unknown types
+    assert(rhrt >= 0);
+    switch (lhrt) {
+        case 0:
+            strcpy(nr->name, "R_FLOAT");
+            // calling this undefined for now. will implement floating point mod later.
+            assert(lhrt != 0 && rhrt != 0);
+            break;
+        case 1:
+            strcpy(nr->name, "R_INT");
+            switch (rhrt) {
+                case 0:
+                    // calling this undefined for now. will implement floating point mod later.
+                    assert(lhrt != 0 && rhrt != 0);
+                    break;
+                case 1:
+                    nr->result->Int->v = lhr->result->Int->v % rhr->result->Int->v;
+                    break;
+                case 2:
+                    // implicitly converts the rh arg from a char to an int
+                    nr->result->Int->v = lhr->result->Int->v % rhr->result->Char->v;
+                    break;
+                case 3:
+                    // implicitly converts the lh arg from a bool to an int whose value is either '000...001' or '000...000'
+                    nr->result->Int->v = lhr->result->Int->v % rhr->result->Bool->v;
+                    break;
+            }
+            break;
+        case 2:
+            strcpy(nr->name, "R_CHAR");
+            switch (rhrt) {
+                case 0:
+                    // calling this undefined for now. will implement floating point mod later.
+                    assert(lhrt != 0 && rhrt != 0);
+                    break;
+                case 1:
+                    // implicitly converts the lh arg from a char to an int
+                    nr->result->Int->v = lhr->result->Char->v % rhr->result->Int->v;
+                    break;
+                case 2:
+                    nr->result->Char->v = lhr->result->Char->v % rhr->result->Char->v;
+                    break;
+                case 3:
+                    // implicitly converts the rh arg from a bool to a char whose value is either '00000001' or '00000000'
+                    nr->result->Char->v = lhr->result->Char->v % rhr->result->Bool->v;
+                    break;
+            }
+            break;
+        case 3:
+            strcpy(nr->name, "R_BOOL");
+            switch (rhrt) {
+                case 0:
+                    // calling this undefined for now. will implement floating point mod later.
+                    assert(lhrt != 0 && rhrt != 0);
+                    break;
+                case 1:
+                    // implicitly convert the lh bool arg to an int whose value is '000...001' or '000...000'
+                    nr->result->Int->v = lhr->result->Bool->v % rhr->result->Int->v;
+                    break;
+                case 2:
+                    // implicitly convert the lh bool arg to a char whose value is '00000001' or '00000000'
+                    nr->result->Char->v = lhr->result->Bool->v % rhr->result->Char->v;
+                    break;
+                case 3:
+                    // undefined behavior for modding a bool with a bool
+                    assert(lhrt != 3 || rhrt != 3);
+                    break;
+            }
+            break;
+    }
+}

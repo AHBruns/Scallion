@@ -123,13 +123,16 @@ void freeList(struct NODE * head) {
 void printList(struct NODE * head) {
     printf("--\n");
     struct NODE * ptr = head;
+    int i = 0;
     while (ptr) {
+        printf("%d %p\n", i, ptr);
         if (ptr->token != NULL && ptr->index != NULL) {
             printf("%p ", ptr->index);
             printExpr(ptr->token);
             printf("\n");
         }
         ptr = ptr->next;
+        i++;
     }
     printf("--\n");
 }

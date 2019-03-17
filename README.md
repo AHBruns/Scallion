@@ -1,2 +1,2 @@
-# Scallion: A Python Transpiler
+# Scallion: It's Like Python, But Way Worse
 ![Scallion](logo.jpg)
