@@ -9,6 +9,7 @@
 
 #include "exprs.h"
 #include "alexBrunsDataStructs.h"
+#include "results.h"
 
 void printExpr(struct NAMED_TOKEN * head) {
     if (strcmp(head->name, "PLUS") == 0) {
@@ -58,6 +59,22 @@ void printExpr(struct NAMED_TOKEN * head) {
     }
 }
 
+void printResult(struct NAMED_RESULT * nr) {
+    if (strcmp(nr->name, "R_INT") == 0) {
+        printf("type: integer, value: %d\n", nr->result.Int.v);
+    } else if (strcmp(nr->name, "R_FLOAT") == 0) {
+        printf("type: floating point , value: %f\n", nr->result.Float.v);
+    } else if (strcmp(nr->name, "R_CHAR") == 0) {
+        printf("type: char, value: %c\n", nr->result.Char.v);
+    } else if (strcmp(nr->name, "R_BOOL") == 0) {
+        if (nr->result.Bool.v == 1) {
+            printf("type: bool, value: True\n");
+        } else {
+            printf("type: bool, value: False\n");
+        }
+    }
+}
+
 // parens helpers
 void printParenPairList(struct PAREN_PAIR pairs[100]) {
     printf("\n\n");
@@ -102,7 +119,7 @@ void insertNode(struct NODE * node2insert, struct NODE * head) {
     node2insert->next = tmp;
 }
 
-void shiftNPastIndex(void * index, int shift, struct NODE * head) {
+void shiftNPastIndex(void * index, long shift, struct NODE * head) {
     struct NODE * ptr = head;
     while (ptr != NULL) {
         if (ptr->index > index) {

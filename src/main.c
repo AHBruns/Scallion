@@ -40,9 +40,9 @@ void mod_tokenize(char *, struct NODE *);
 void plus_tokenize(char *, struct NODE *);
 void sub_tokenize(char *, struct NODE *);
 struct NAMED_RESULT * simplify(struct NAMED_TOKEN *);
-void const_parse(struct NAMED_RESULT *, struct NAMED_RESULT *);
+void const_parse(struct NAMED_TOKEN *, struct NAMED_RESULT *);
 int type_2_int(struct NAMED_RESULT *);
-void plus_parse(struct NAMED_RESULT *, struct NAMED_RESULT *);
+void plus_parse(struct NAMED_TOKEN *, struct NAMED_RESULT *);
 void sub_parse(struct NAMED_TOKEN *, struct NAMED_RESULT *);
 void mod_parse(struct NAMED_TOKEN *, struct NAMED_RESULT *);
 void div_parse(struct NAMED_TOKEN *, struct NAMED_RESULT *);
@@ -56,19 +56,19 @@ int main(int argc, char ** argv) {
     int i = 0;
     struct BINDING * env[MAX_CONCURRENT_BINDINGS] = {0};
     while (i < MAX_LINES && (long) expr_sequence[i] != 0) {
-        printf("\n-  - -- ---> START INPUT LINE\n"
-               "%s\n"
-               "-  - -- ---> END INPUT LINE\n", expr_sequence[i]);
+        printf("%s\n", expr_sequence[i]);
         struct NAMED_TOKEN *expr_head = tokenize(expr_sequence[i], &HEAD, env);
-        printf("\n");
-        printf("-  - -- ---> START TOKENIZED LINE\n");
         printExpr(expr_head);
-        printf("\n-  - -- ---> END TOKENIZED LINE\n\n");
+        printf("\n");
         free(expr_sequence[i]);
         i++;
         HEAD.index = NULL;
         HEAD.token = NULL;
         HEAD.next = NULL;
+        struct NAMED_RESULT * nr = simplify(expr_head);
+        printResult(nr);
+        freeList(HEAD.next);
+        printf("\n");
     }
     free(expr_sequence);
     return 0;
@@ -162,7 +162,7 @@ struct NAMED_TOKEN * tokenize(char * raw_input_expr, struct NODE * node, struct 
     new_binding_tokenize(raw_input_expr, node, env);
     //printf("raw_input_expr after new_binding_tokenize: %s\n", raw_input_expr);
     struct NAMED_TOKEN * ret = nodeFromIndex(raw_input_expr, node)->token;
-    freeList(node->next); // you don't free the head because its not on the heap
+    //freeList(node->next);
     return ret;
 }
 
@@ -298,7 +298,10 @@ void paren_tokenize(char * raw_input_expr, struct NODE * head, struct BINDING * 
             struct NODE subexpr_head = { NULL, NULL, NULL };
             struct BINDING * envcpy[MAX_CONCURRENT_BINDINGS];
             memmove(envcpy, env, MAX_CONCURRENT_BINDINGS * sizeof(struct BINDING *));
-            struct NAMED_TOKEN * nt = tokenize(subexpr, &subexpr_head, envcpy);
+            shiftNPastIndex(raw_input_expr, (long)(pairs[i].beginning)+1-(long)subexpr, head);
+            struct NAMED_TOKEN * nt = tokenize(subexpr, head, envcpy);
+            shiftNPastIndex(subexpr, (long)(pairs[i].beginning)-1+(long)subexpr, head);
+            shiftNPastIndex(raw_input_expr, pairs[i].beginning+1-raw_input_expr, head);
             struct NODE * node = malloc(sizeof(struct NODE));
             node->token = nt;
             node->index = pairs[i].beginning;
@@ -730,7 +733,7 @@ void sub_tokenize(char * raw_input_expr, struct NODE * head) {
 
 /*** PARSING ***/
 struct NAMED_RESULT * simplify(struct NAMED_TOKEN * tt) {
-    struct NAMED_RESULT * nr = malloc(sizeof(struct NAMED_RESULT *));
+    struct NAMED_RESULT * nr = calloc(1, sizeof(struct NAMED_RESULT));
     if (strcmp(tt->name, "CONST") == 0) {
         const_parse(tt, nr);
     } else if (strcmp(tt->name, "PLUS") == 0) {
@@ -739,13 +742,15 @@ struct NAMED_RESULT * simplify(struct NAMED_TOKEN * tt) {
         sub_parse(tt, nr);
     } else if (strcmp(tt->name, "MOD") == 0) {
         mod_parse(tt, nr);
+    } else if (strcmp(tt->name, "DIV") == 0) {
+        div_parse(tt, nr);
     }
     return nr;
 }
 
 void const_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
     strcpy(nr->name, "R_INT");
-    nr->result = tt->token->Const->v;
+    nr->result.Int.v = tt->token->Const->v;
 }
 
 int type_2_int(struct NAMED_RESULT * r) {
@@ -780,19 +785,19 @@ void plus_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
             strcpy(nr->name, "R_FLOAT");
             switch (rhrt) {
                 case 0:
-                    nr->result->Float->v = lhr->result->Float->v + rhr->result->Float->v;
+                    nr->result.Float.v = lhr->result.Float.v + rhr->result.Float.v;
                     break;
                 case 1:
                     // implicityly converts the rh int arg to a float
-                    nr->result->Float->v = lhr->result->Float->v + rhr->result->Int->v;
+                    nr->result.Float.v = lhr->result.Float.v + rhr->result.Int.v;
                     break;
                 case 2:
                     // implicitly converts the rh char arg to a float
-                    nr->result->Float->v = lhr->result->Float->v + rhr->result->Char->v;
+                    nr->result.Float.v = lhr->result.Float.v + rhr->result.Char.v;
                     break;
                 case 3:
                     // implicitly converts the rh bool arg to either the float 0.0 or 1.0
-                    nr->result->Float->v = lhr->result->Float->v + rhr->result->Bool->v;
+                    nr->result.Float.v = lhr->result.Float.v + rhr->result.Bool.v;
                     break;
             }
             break;
@@ -801,18 +806,18 @@ void plus_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
             switch (rhrt) {
                 case 0:
                     // implicitly converts the rh arg from an int to a float
-                    nr->result->Float->v = lhr->result->Int->v + rhr->result->Float->v;
+                    nr->result.Float.v = lhr->result.Int.v + rhr->result.Float.v;
                     break;
                 case 1:
-                    nr->result->Int->v = lhr->result->Int->v + rhr->result->Int->v;
+                    nr->result.Int.v = lhr->result.Int.v + rhr->result.Int.v;
                     break;
                 case 2:
                     // implicitly converts the rh arg from a char to an int
-                    nr->result->Int->v = lhr->result->Int->v + rhr->result->Char->v;
+                    nr->result.Int.v = lhr->result.Int.v + rhr->result.Char.v;
                     break;
                 case 3:
                     // implicitly converts the lh arg from a bool to an int whose value is either '000...001' or '000...000'
-                    nr->result->Int->v = lhr->result->Int->v + rhr->result->Bool->v;
+                    nr->result.Int.v = lhr->result.Int.v + rhr->result.Bool.v;
                     break;
             }
             break;
@@ -821,18 +826,18 @@ void plus_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
             switch (rhrt) {
                 case 0:
                     // implicitly converts the lh arg from a char to a float
-                    nr->result->Float->v = lhr->result->Char->v + rhr->result->Float->v;
+                    nr->result.Float.v = lhr->result.Char.v + rhr->result.Float.v;
                     break;
                 case 1:
                     // implicitly converts the lh arg from a char to an int
-                    nr->result->Int->v = lhr->result->Char->v + rhr->result->Int->v;
+                    nr->result.Int.v = lhr->result.Char.v + rhr->result.Int.v;
                     break;
                 case 2:
-                    nr->result->Char->v = lhr->result->Char->v + rhr->result->Char->v;
+                    nr->result.Char.v = lhr->result.Char.v + rhr->result.Char.v;
                     break;
                 case 3:
                     // implicitly converts the rh arg from a bool to a char whose value is either '00000001' or '00000000'
-                    nr->result->Char->v = lhr->result->Char->v + rhr->result->Bool->v;
+                    nr->result.Char.v = lhr->result.Char.v + rhr->result.Bool.v;
                     break;
             }
             break;
@@ -841,19 +846,19 @@ void plus_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
             switch (rhrt) {
                 case 0:
                     // implicitly convert the lh bool arg to a float whose value is 0.0 or 1.0
-                    nr->result->Float->v = lhr->result->Bool->v + rhr->result->Float->v;
+                    nr->result.Float.v = lhr->result.Bool.v + rhr->result.Float.v;
                     break;
                 case 1:
                     // implicitly convert the lh bool arg to an int whose value is '000...001' or '000...000'
-                    nr->result->Int->v = lhr->result->Bool->v + rhr->result->Int->v;
+                    nr->result.Int.v = lhr->result.Bool.v + rhr->result.Int.v;
                     break;
                 case 2:
                     // implicitly convert the lh bool arg to a char whose value is '00000001' or '00000000'
-                    nr->result->Char->v = lhr->result->Bool->v + rhr->result->Char->v;
+                    nr->result.Char.v = lhr->result.Bool.v + rhr->result.Char.v;
                     break;
                 case 3:
                     // implicitly converts the + operator to an & operator
-                    nr->result->Bool->v = lhr->result->Bool->v & rhr->result->Bool->v;
+                    nr->result.Bool.v = lhr->result.Bool.v & rhr->result.Bool.v;
                     break;
             }
             break;
@@ -874,19 +879,19 @@ void sub_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
             strcpy(nr->name, "R_FLOAT");
             switch (rhrt) {
                 case 0:
-                    nr->result->Float->v = lhr->result->Float->v - rhr->result->Float->v;
+                    nr->result.Float.v = lhr->result.Float.v - rhr->result.Float.v;
                     break;
                 case 1:
                     // implicityly converts the rh int arg to a float
-                    nr->result->Float->v = lhr->result->Float->v - rhr->result->Int->v;
+                    nr->result.Float.v = lhr->result.Float.v - rhr->result.Int.v;
                     break;
                 case 2:
                     // implicitly converts the rh char arg to a float
-                    nr->result->Float->v = lhr->result->Float->v - rhr->result->Char->v;
+                    nr->result.Float.v = lhr->result.Float.v - rhr->result.Char.v;
                     break;
                 case 3:
                     // implicitly converts the rh bool arg to either the float 0.0 or 1.0
-                    nr->result->Float->v = lhr->result->Float->v - rhr->result->Bool->v;
+                    nr->result.Float.v = lhr->result.Float.v - rhr->result.Bool.v;
                     break;
             }
             break;
@@ -895,18 +900,18 @@ void sub_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
             switch (rhrt) {
                 case 0:
                     // implicitly converts the rh arg from an int to a float
-                    nr->result->Float->v = lhr->result->Int->v - rhr->result->Float->v;
+                    nr->result.Float.v = lhr->result.Int.v - rhr->result.Float.v;
                     break;
                 case 1:
-                    nr->result->Int->v = lhr->result->Int->v - rhr->result->Int->v;
+                    nr->result.Int.v = lhr->result.Int.v - rhr->result.Int.v;
                     break;
                 case 2:
                     // implicitly converts the rh arg from a char to an int
-                    nr->result->Int->v = lhr->result->Int->v - rhr->result->Char->v;
+                    nr->result.Int.v = lhr->result.Int.v - rhr->result.Char.v;
                     break;
                 case 3:
                     // implicitly converts the lh arg from a bool to an int whose value is either '000...001' or '000...000'
-                    nr->result->Int->v = lhr->result->Int->v - rhr->result->Bool->v;
+                    nr->result.Int.v = lhr->result.Int.v - rhr->result.Bool.v;
                     break;
             }
             break;
@@ -915,18 +920,18 @@ void sub_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
             switch (rhrt) {
                 case 0:
                     // implicitly converts the lh arg from a char to a float
-                    nr->result->Float->v = lhr->result->Char->v - rhr->result->Float->v;
+                    nr->result.Float.v = lhr->result.Char.v - rhr->result.Float.v;
                     break;
                 case 1:
                     // implicitly converts the lh arg from a char to an int
-                    nr->result->Int->v = lhr->result->Char->v - rhr->result->Int->v;
+                    nr->result.Int.v = lhr->result.Char.v - rhr->result.Int.v;
                     break;
                 case 2:
-                    nr->result->Char->v = lhr->result->Char->v - rhr->result->Char->v;
+                    nr->result.Char.v = lhr->result.Char.v - rhr->result.Char.v;
                     break;
                 case 3:
                     // implicitly converts the rh arg from a bool to a char whose value is either '00000001' or '00000000'
-                    nr->result->Char->v = lhr->result->Char->v - rhr->result->Bool->v;
+                    nr->result.Char.v = lhr->result.Char.v - rhr->result.Bool.v;
                     break;
             }
             break;
@@ -935,19 +940,19 @@ void sub_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
             switch (rhrt) {
                 case 0:
                     // implicitly convert the lh bool arg to a float whose value is 0.0 or 1.0
-                    nr->result->Float->v = lhr->result->Bool->v - rhr->result->Float->v;
+                    nr->result.Float.v = lhr->result.Bool.v - rhr->result.Float.v;
                     break;
                 case 1:
                     // implicitly convert the lh bool arg to an int whose value is '000...001' or '000...000'
-                    nr->result->Int->v = lhr->result->Bool->v - rhr->result->Int->v;
+                    nr->result.Int.v = lhr->result.Bool.v - rhr->result.Int.v;
                     break;
                 case 2:
                     // implicitly convert the lh bool arg to a char whose value is '00000001' or '00000000'
-                    nr->result->Char->v = lhr->result->Bool->v - rhr->result->Char->v;
+                    nr->result.Char.v = lhr->result.Bool.v - rhr->result.Char.v;
                     break;
                 case 3:
-                    // undefined behavior for subtracting a bool from a bool
-                    assert(lhrt != 3 || rhrt != 3);
+                    // implicitly converts the - operator to an ^ operator
+                    nr->result.Bool.v = lhr->result.Bool.v ^ rhr->result.Bool.v;
                     break;
             }
             break;
@@ -977,20 +982,19 @@ void mod_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
                     assert(lhrt != 0 && rhrt != 0);
                     break;
                 case 1:
-                    nr->result->Int->v = lhr->result->Int->v % rhr->result->Int->v;
+                    nr->result.Int.v = lhr->result.Int.v % rhr->result.Int.v;
                     break;
                 case 2:
                     // implicitly converts the rh arg from a char to an int
-                    nr->result->Int->v = lhr->result->Int->v % rhr->result->Char->v;
+                    nr->result.Int.v = lhr->result.Int.v % rhr->result.Char.v;
                     break;
                 case 3:
                     // implicitly converts the lh arg from a bool to an int whose value is either '000...001' or '000...000'
-                    nr->result->Int->v = lhr->result->Int->v % rhr->result->Bool->v;
+                    nr->result.Int.v = lhr->result.Int.v % rhr->result.Bool.v;
                     break;
             }
             break;
         case 2:
-            strcpy(nr->name, "R_CHAR");
             switch (rhrt) {
                 case 0:
                     // calling this undefined for now. will implement floating point mod later.
@@ -998,19 +1002,21 @@ void mod_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
                     break;
                 case 1:
                     // implicitly converts the lh arg from a char to an int
-                    nr->result->Int->v = lhr->result->Char->v % rhr->result->Int->v;
+                    strcpy(nr->name, "R_INT");
+                    nr->result.Int.v = lhr->result.Char.v % rhr->result.Int.v;
                     break;
                 case 2:
-                    nr->result->Char->v = lhr->result->Char->v % rhr->result->Char->v;
+                    strcpy(nr->name, "R_CHAR");
+                    nr->result.Char.v = lhr->result.Char.v % rhr->result.Char.v;
                     break;
                 case 3:
                     // implicitly converts the rh arg from a bool to a char whose value is either '00000001' or '00000000'
-                    nr->result->Char->v = lhr->result->Char->v % rhr->result->Bool->v;
+                    strcpy(nr->name, "R_CHAR");
+                    nr->result.Char.v = lhr->result.Char.v % rhr->result.Bool.v;
                     break;
             }
             break;
         case 3:
-            strcpy(nr->name, "R_BOOL");
             switch (rhrt) {
                 case 0:
                     // calling this undefined for now. will implement floating point mod later.
@@ -1018,11 +1024,13 @@ void mod_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
                     break;
                 case 1:
                     // implicitly convert the lh bool arg to an int whose value is '000...001' or '000...000'
-                    nr->result->Int->v = lhr->result->Bool->v % rhr->result->Int->v;
+                    strcpy(nr->name, "R_INT");
+                    nr->result.Int.v = lhr->result.Bool.v % rhr->result.Int.v;
                     break;
                 case 2:
                     // implicitly convert the lh bool arg to a char whose value is '00000001' or '00000000'
-                    nr->result->Char->v = lhr->result->Bool->v % rhr->result->Char->v;
+                    strcpy(nr->name, "R_Char");
+                    nr->result.Char.v = lhr->result.Bool.v % rhr->result.Char.v;
                     break;
                 case 3:
                     // undefined behavior for modding a bool with a bool
@@ -1045,63 +1053,79 @@ void div_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
     switch (lhrt) {
         case 0:
             strcpy(nr->name, "R_FLOAT");
-            // calling this undefined for now. will implement floating point mod later.
-            assert(lhrt != 0 && rhrt != 0);
-            break;
-        case 1:
-            strcpy(nr->name, "R_INT");
             switch (rhrt) {
                 case 0:
-                    // calling this undefined for now. will implement floating point mod later.
-                    assert(lhrt != 0 && rhrt != 0);
+                    nr->result.Float.v = lhr->result.Float.v / rhr->result.Float.v;
                     break;
                 case 1:
-                    nr->result->Int->v = lhr->result->Int->v % rhr->result->Int->v;
+                    // implicityly converts the rh int arg to a float
+                    nr->result.Float.v = lhr->result.Float.v / rhr->result.Int.v;
                     break;
                 case 2:
-                    // implicitly converts the rh arg from a char to an int
-                    nr->result->Int->v = lhr->result->Int->v % rhr->result->Char->v;
+                    // implicitly converts the rh char arg to a float
+                    nr->result.Float.v = lhr->result.Float.v / rhr->result.Char.v;
                     break;
                 case 3:
-                    // implicitly converts the lh arg from a bool to an int whose value is either '000...001' or '000...000'
-                    nr->result->Int->v = lhr->result->Int->v % rhr->result->Bool->v;
+                    // division by a boolean is undefined
+                    assert(rhrt != 3);
+                    break;
+            }
+            break;
+        case 1:
+            strcpy(nr->name, "R_FLOAT");
+            switch (rhrt) {
+                case 0:
+                    nr->result.Float.v = lhr->result.Int.v / rhr->result.Float.v;
+                    break;
+                case 1:
+                    // implicitly converts both args to floats
+                    nr->result.Float.v = (double)lhr->result.Int.v / (double)rhr->result.Int.v;
+                    break;
+                case 2:
+                    // implicitly converts both args to floats
+                    nr->result.Float.v = (double)lhr->result.Int.v / (double)rhr->result.Char.v;
+                    break;
+                case 3:
+                    // division by a boolean is undefined
+                    assert(rhrt != 3);
                     break;
             }
             break;
         case 2:
-            strcpy(nr->name, "R_CHAR");
+            strcpy(nr->name, "R_FLOAT");
             switch (rhrt) {
                 case 0:
-                    // calling this undefined for now. will implement floating point mod later.
-                    assert(lhrt != 0 && rhrt != 0);
+                    // implicitly converts both args to floats
+                    nr->result.Float.v = (double)lhr->result.Char.v / rhr->result.Float.v;
                     break;
                 case 1:
-                    // implicitly converts the lh arg from a char to an int
-                    nr->result->Int->v = lhr->result->Char->v % rhr->result->Int->v;
+                    // implicitly converts both args to floats
+                    nr->result.Float.v = (double)lhr->result.Char.v / (double)rhr->result.Int.v;
                     break;
                 case 2:
-                    nr->result->Char->v = lhr->result->Char->v % rhr->result->Char->v;
+                    // implicitly converts both args to floats
+                    nr->result.Float.v = (double)lhr->result.Char.v / (double)rhr->result.Char.v;
                     break;
                 case 3:
-                    // implicitly converts the rh arg from a bool to a char whose value is either '00000001' or '00000000'
-                    nr->result->Char->v = lhr->result->Char->v % rhr->result->Bool->v;
+                    // implicitly converts both args to floats
+                    nr->result.Float.v = (double)lhr->result.Char.v / (double)rhr->result.Bool.v;
                     break;
             }
             break;
         case 3:
-            strcpy(nr->name, "R_BOOL");
+            strcpy(nr->name, "R_FLOAT");
             switch (rhrt) {
                 case 0:
-                    // calling this undefined for now. will implement floating point mod later.
-                    assert(lhrt != 0 && rhrt != 0);
+                    // implicitly converts both args to floats
+                    nr->result.Float.v = (double)lhr->result.Bool.v / (double)rhr->result.Float.v;
                     break;
                 case 1:
-                    // implicitly convert the lh bool arg to an int whose value is '000...001' or '000...000'
-                    nr->result->Int->v = lhr->result->Bool->v % rhr->result->Int->v;
+                    // implicitly converts both args to floats
+                    nr->result.Float.v = (double)lhr->result.Bool.v / (double)rhr->result.Int.v;
                     break;
                 case 2:
-                    // implicitly convert the lh bool arg to a char whose value is '00000001' or '00000000'
-                    nr->result->Char->v = lhr->result->Bool->v % rhr->result->Char->v;
+                    // implicitly converts both args to floats
+                    nr->result.Float.v = (double)lhr->result.Bool.v / (double)rhr->result.Char.v;
                     break;
                 case 3:
                     // undefined behavior for modding a bool with a bool

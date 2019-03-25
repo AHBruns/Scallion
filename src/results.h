@@ -14,16 +14,16 @@ struct R_STRING { char * v; };
 struct R_LIST   { union RESULT * v; };
 
 union RESULT {
-    struct R_FLOAT * Float;
-    struct R_INT * Int;
-    struct R_CHAR * Char;
-    struct R_BOOL * Bool;
-    struct R_STRING * String;
-    struct R_LIST * List;
+    struct R_FLOAT Float;
+    struct R_INT Int;
+    struct R_CHAR Char;
+    struct R_BOOL Bool;
+    struct R_STRING String;
+    struct R_LIST List;
 };
 
 struct NAMED_RESULT {
     char name[10];
-    union RESULT * result;
+    union RESULT result;
 };
 #endif //SCALLION_RESULTS_H

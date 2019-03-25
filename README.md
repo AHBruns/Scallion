@@ -1,2 +1,2 @@
-# Scallion: It's Like Python, But Way Worse
+# Like Python, But Worse
 ![Scallion](logo.jpeg)
