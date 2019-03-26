@@ -17,6 +17,7 @@
 #include "alexBrunsDataStructs.h"
 #include "exprUtils.h"
 #include "results.h"
+#include "debugGlobals.h"
 
 // globals
 struct NODE HEAD = { NULL, NULL, NULL };
@@ -46,6 +47,7 @@ void plus_parse(struct NAMED_TOKEN *, struct NAMED_RESULT *);
 void sub_parse(struct NAMED_TOKEN *, struct NAMED_RESULT *);
 void mod_parse(struct NAMED_TOKEN *, struct NAMED_RESULT *);
 void div_parse(struct NAMED_TOKEN *, struct NAMED_RESULT *);
+void mul_parse(struct NAMED_TOKEN *, struct NAMED_RESULT *);
 
 int main(int argc, char ** argv) {
     assert(argc == 2);
@@ -62,12 +64,15 @@ int main(int argc, char ** argv) {
         printf("\n");
         free(expr_sequence[i]);
         i++;
+        DBPRINTLIST(&HEAD);
+        struct NAMED_RESULT * nr = simplify(expr_head);
+        DBPRINTLIST(&HEAD);
+        DBPRINTF("%s\n", nr->name);
+        printResult(nr);
+        freeList(HEAD.next);
         HEAD.index = NULL;
         HEAD.token = NULL;
         HEAD.next = NULL;
-        struct NAMED_RESULT * nr = simplify(expr_head);
-        printResult(nr);
-        freeList(HEAD.next);
         printf("\n");
     }
     free(expr_sequence);
@@ -130,37 +135,114 @@ char ** sequencize(char * raw_input_str) {
 }
 
 struct NAMED_TOKEN * tokenize(char * raw_input_expr, struct NODE * node, struct BINDING * env[MAX_CONCURRENT_BINDINGS]) {
-    //printf("raw_input_expr initially: %s\n", raw_input_expr);
+    if (DEBUG_TOGGLE) {
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr: %p\n", raw_input_expr);
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr initially: ");
+        printEscStr(raw_input_expr);
+        printList(node);
+    }
     /*** inject bindings ***/
     inject_env(raw_input_expr, node, env);
-    //printf("raw_input_expr after inject_env: %s\n", raw_input_expr);
+    if (DEBUG_TOGGLE) {
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr: %p\n", raw_input_expr);
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr after inject_env: ");
+        printEscStr(raw_input_expr);
+        printList(node);
+    }
     /*** parenthesis pass ***/
     paren_tokenize(raw_input_expr, node, env);
-    //printf("raw_input_expr after paren_tokenize: %s\n", raw_input_expr);
+    if (DEBUG_TOGGLE) {
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr: %p\n", raw_input_expr);
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr after paren_tokenize: ");
+        printEscStr(raw_input_expr);
+        printList(node);
+    }
     /*** exponentiation pass ***/
     pow_tokenize(raw_input_expr, node);
-    //printf("raw_input_expr after pow_tokenize: %s\n", raw_input_expr);
+    if (DEBUG_TOGGLE) {
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr: %p\n", raw_input_expr);
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr after pow_tokenize: ");
+        printEscStr(raw_input_expr);
+        printList(node);
+    }
     /*** multiplication pass ***/
     mul_tokenize(raw_input_expr, node);
-    //printf("raw_input_expr after mul_tokenize: %s\n", raw_input_expr);
+    if (DEBUG_TOGGLE) {
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr: %p\n", raw_input_expr);
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr after mul_tokenize: ");
+        printEscStr(raw_input_expr);
+        printList(node);
+    }
     /*** floor division pass ***/
     fdiv_tokenize(raw_input_expr, node);
-    //printf("raw_input_expr after fdiv_tokenize: %s\n", raw_input_expr);
+    if (DEBUG_TOGGLE) {
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr: %p\n", raw_input_expr);
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr after fdiv_tokenize: ");
+        printEscStr(raw_input_expr);
+        printList(node);
+    }
     /*** division pass ***/
     div_tokenize(raw_input_expr, node);
-    //printf("raw_input_expr after div_tokenize: %s\n", raw_input_expr);
+    if (DEBUG_TOGGLE) {
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr: %p\n", raw_input_expr);
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr after div_tokenize: ");
+        printEscStr(raw_input_expr);
+        printList(node);
+    }
     /*** modulo pass ***/
     mod_tokenize(raw_input_expr, node);
-    //printf("raw_input_expr after mod_tokenize: %s\n", raw_input_expr);
+    if (DEBUG_TOGGLE) {
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr: %p\n", raw_input_expr);
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr after mod_tokenize: ");
+        printEscStr(raw_input_expr);
+        printList(node);
+    }
     /*** plus pass ***/
     plus_tokenize(raw_input_expr, node);
-    //printf("raw_input_expr after plus_tokenize: %s\n", raw_input_expr);
+    if (DEBUG_TOGGLE) {
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr: %p\n", raw_input_expr);
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr after plus_tokenize: ");
+        printEscStr(raw_input_expr);
+        printList(node);
+    }
     /*** sub pass ***/
     sub_tokenize(raw_input_expr, node);
-    //printf("raw_input_expr after sub_tokenize: %s\n", raw_input_expr);
+    if (DEBUG_TOGGLE) {
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr: %p\n", raw_input_expr);
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr after sub_tokenize: ");
+        printEscStr(raw_input_expr);
+        printList(node);
+    }
     /*** binding pass ***/
     new_binding_tokenize(raw_input_expr, node, env);
-    //printf("raw_input_expr after new_binding_tokenize: %s\n", raw_input_expr);
+    if (DEBUG_TOGGLE) {
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr: %p\n", raw_input_expr);
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr after new_binding_tokenize: ");
+        printEscStr(raw_input_expr);
+        printList(node);
+    }
     struct NAMED_TOKEN * ret = nodeFromIndex(raw_input_expr, node)->token;
     //freeList(node->next);
     return ret;
@@ -216,6 +298,15 @@ struct NAMED_TOKEN * const_tokenize(char * raw_input_expr) {
 void inject_env(char * raw_input_expr, struct NODE * head, struct BINDING * env[MAX_CONCURRENT_BINDINGS]) {
     int i = 0;
     while (i < MAX_CONCURRENT_BINDINGS && env[i] != NULL) {
+        if (DEBUG_TOGGLE) {
+            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+            printf("inject_env:\n");
+            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+            printf("raw_input_expr: %p\n", raw_input_expr);
+            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+            printf("raw_input_expr: ");
+            printEscStr(raw_input_expr);
+        }
         char * name = env[i]->name;
         int name_length = strlen(name);
         char * loc = strstr(raw_input_expr, name);
@@ -232,7 +323,7 @@ void inject_env(char * raw_input_expr, struct NODE * head, struct BINDING * env[
                     raw_input_expr[j] = raw_input_expr[j+name_length-1];
                 }
                 raw_input_expr[1 + length - name_length] = '\0';
-                shiftNPastIndex(loc, name_length, head);
+                shiftNDownInRange(loc, loc+strlen(loc), name_length-1, head);
             }
             loc = strstr(raw_input_expr, name);
         }
@@ -241,6 +332,13 @@ void inject_env(char * raw_input_expr, struct NODE * head, struct BINDING * env[
 }
 
 void new_binding_tokenize(char * raw_input_expr, struct NODE * head, struct BINDING * env[MAX_CONCURRENT_BINDINGS]) {
+    if (DEBUG_TOGGLE) {
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr: %p\n", raw_input_expr);
+        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+        printf("raw_input_expr: ");
+        printEscStr(raw_input_expr);
+    }
     char * binding_loc = strchr(raw_input_expr, '=');
     int statement_length = 0;
     if (!binding_loc) {
@@ -254,7 +352,17 @@ void new_binding_tokenize(char * raw_input_expr, struct NODE * head, struct BIND
         memmove(name, raw_input_expr, statement_length);
         name[statement_length] = '\0';
         memmove(raw_input_expr, binding_loc+1, strlen(binding_loc));
-        shiftNPastIndex(raw_input_expr, statement_length+1, head);
+        if (DEBUG_TOGGLE) {
+            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+            printf("raw_input_expr: %p\n", raw_input_expr);
+            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+            printf("raw_input_expr: ");
+            printEscStr(raw_input_expr);
+            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+            printf("offset: %d\n", statement_length+1);
+            printList(head);
+        }
+        shiftNDownInRange(raw_input_expr, raw_input_expr+strlen(raw_input_expr)+statement_length, statement_length+1, head);
         int i = 0;
         while (i < MAX_CONCURRENT_BINDINGS && env[i] != NULL) i++;
         struct BINDING * bd = malloc(sizeof(struct BINDING));
@@ -291,6 +399,9 @@ void paren_tokenize(char * raw_input_expr, struct NODE * head, struct BINDING * 
     assert(count == 0);
     for (int i = 99; i >= 0; i--) {
         if (pairs[i].depth == -1) {
+            if (DEBUG_TOGGLE) {
+                printf("doing stuff in paren_tokenize\n");
+            }
             int subexpr_length = pairs[i].ending - pairs[i].beginning;
             char subexpr[subexpr_length];
             memmove(subexpr, pairs[i].beginning+1, subexpr_length-1);
@@ -298,22 +409,67 @@ void paren_tokenize(char * raw_input_expr, struct NODE * head, struct BINDING * 
             struct NODE subexpr_head = { NULL, NULL, NULL };
             struct BINDING * envcpy[MAX_CONCURRENT_BINDINGS];
             memmove(envcpy, env, MAX_CONCURRENT_BINDINGS * sizeof(struct BINDING *));
-            shiftNPastIndex(raw_input_expr, (long)(pairs[i].beginning)+1-(long)subexpr, head);
+            if (DEBUG_TOGGLE) {
+                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+                printf("----------------\n");
+                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+                printf("pairs[i]: ");
+                printEscStr((pairs[i].beginning));
+                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+                printf("pairs[i] loc: %p\n", pairs[i].beginning);
+                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+                printf("subexpr: ");
+                printEscStr((subexpr));
+                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+                printf("subexpr loc: %p\n", subexpr);
+                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+                printf("ptrexpr: ");
+                printEscStr(raw_input_expr);
+                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+                printf("ptrexpr loc: %p\n", raw_input_expr);
+                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+                printf("before shift\n");
+                printList(head);
+            }
+            if (subexpr > raw_input_expr) {
+                shiftNUpInRange(pairs[i].beginning, pairs[i].ending, (unsigned long)subexpr-(unsigned long)(pairs[i].beginning)-1, head);
+            } else {
+                shiftNDownInRange(pairs[i].beginning, pairs[i].ending, (unsigned long)(pairs[i].beginning)-(unsigned long)subexpr+1, head);
+            }
+            if (DEBUG_TOGGLE) {
+                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+                printf("before\n");
+                printList(head);
+                GLOBAL_TABS++;
+            }
             struct NAMED_TOKEN * nt = tokenize(subexpr, head, envcpy);
-            shiftNPastIndex(subexpr, (long)(pairs[i].beginning)-1+(long)subexpr, head);
-            shiftNPastIndex(raw_input_expr, pairs[i].beginning+1-raw_input_expr, head);
-            struct NODE * node = malloc(sizeof(struct NODE));
-            node->token = nt;
-            node->index = pairs[i].beginning;
-            insertNode(node, head);
+            if (DEBUG_TOGGLE) {
+                GLOBAL_TABS--;
+                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+                printf("after\n");
+                printList(head);
+            }
+            if (subexpr > raw_input_expr) {
+                shiftNDownInRange(subexpr, subexpr+strlen(subexpr), (unsigned long)subexpr-(unsigned long)(pairs[i].beginning), head);
+            } else {
+                shiftNUpInRange(subexpr, subexpr+strlen(subexpr), (unsigned long)(pairs[i].beginning)-(unsigned long)subexpr, head);
+            }
+            if (DEBUG_TOGGLE) {
+                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+                printf("after shift back\n");
+                printList(head);
+                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+                printf("----------------\n");
+            }
             int offset = pairs[i].beginning - raw_input_expr;
             int length = strlen(raw_input_expr);
+            shiftNDownInRange(pairs[i].ending, pairs[i].ending+strlen(pairs[i].ending), subexpr_length, head);
             raw_input_expr[offset] = '\a';
             for (int i = offset+1; i < (length - subexpr_length + 1); i++) {
                 raw_input_expr[i] = raw_input_expr[i+subexpr_length];
             }
             raw_input_expr[1 + length - subexpr_length] = '\0';
-            shiftNPastIndex(pairs[i].beginning, subexpr_length, head);
+
         }
     }
 }
@@ -367,12 +523,12 @@ void pow_tokenize(char * raw_input_expr, struct NODE * head) {
         }
         n->token = nt;
         insertNode(n, head);
+        shiftNDownInRange(statement_start+1, statement_start+strlen(statement_start), statement_length-1, head);
         raw_input_expr[offset] = '\a';
         for (int i = offset+1; i < (length - statement_length + 1); i++) {
             raw_input_expr[i] = raw_input_expr[i+statement_length-1];
         }
         raw_input_expr[1 + length - statement_length] = '\0';
-        shiftNPastIndex(statement_start, statement_length-1, head);
         r = strstr(raw_input_expr, "**");
     }
 }
@@ -426,12 +582,12 @@ void mul_tokenize(char * raw_input_expr, struct NODE * head) {
         }
         n->token = nt;
         insertNode(n, head);
+        shiftNDownInRange(statement_start+1, statement_start+strlen(statement_start), statement_length-1, head);
         raw_input_expr[offset] = '\a';
         for (int i = offset+1; i < (length - statement_length + 1); i++) {
             raw_input_expr[i] = raw_input_expr[i+statement_length-1];
         }
         raw_input_expr[1 + length - statement_length] = '\0';
-        shiftNPastIndex(statement_start, statement_length-1, head);
         r = strstr(raw_input_expr, "*");
     }
 }
@@ -485,12 +641,12 @@ void fdiv_tokenize(char * raw_input_expr, struct NODE * head) {
         }
         n->token = nt;
         insertNode(n, head);
+        shiftNDownInRange(statement_start+1, statement_start+strlen(statement_start), statement_length-1, head);
         raw_input_expr[offset] = '\a';
         for (int i = offset+1; i < (length - statement_length + 1); i++) {
             raw_input_expr[i] = raw_input_expr[i+statement_length-1];
         }
         raw_input_expr[1 + length - statement_length] = '\0';
-        shiftNPastIndex(statement_start, statement_length-1, head);
         r = strstr(raw_input_expr, "//");
     }
 }
@@ -544,12 +700,12 @@ void div_tokenize(char * raw_input_expr, struct NODE * head) {
         }
         n->token = nt;
         insertNode(n, head);
+        shiftNDownInRange(statement_start+1, statement_start+strlen(statement_start), statement_length-1, head);
         raw_input_expr[offset] = '\a';
         for (int i = offset+1; i < (length - statement_length + 1); i++) {
             raw_input_expr[i] = raw_input_expr[i+statement_length-1];
         }
         raw_input_expr[1 + length - statement_length] = '\0';
-        shiftNPastIndex(statement_start, statement_length-1, head);
         r = strstr(raw_input_expr, "/");
     }
 }
@@ -603,12 +759,12 @@ void mod_tokenize(char * raw_input_expr, struct NODE * head) {
         }
         n->token = nt;
         insertNode(n, head);
+        shiftNDownInRange(statement_start+1, statement_start+strlen(statement_start), statement_length-1, head);
         raw_input_expr[offset] = '\a';
         for (int i = offset+1; i < (length - statement_length + 1); i++) {
             raw_input_expr[i] = raw_input_expr[i+statement_length-1];
         }
         raw_input_expr[1 + length - statement_length] = '\0';
-        shiftNPastIndex(statement_start, statement_length-1, head);
         r = strstr(raw_input_expr, "%");
     }
 }
@@ -616,6 +772,14 @@ void mod_tokenize(char * raw_input_expr, struct NODE * head) {
 void plus_tokenize(char * raw_input_expr, struct NODE * head) {
     char * r = strstr(raw_input_expr, "+");
     while (r) {
+        if (DEBUG_TOGGLE) {
+            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+            printf("raw_input_expr: %p\n", raw_input_expr);
+            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+            printf("raw_input_expr: ");
+            printEscStr(raw_input_expr);
+            printList(head);
+        }
         int length = strlen(raw_input_expr);
         char * ptr = r - 1;
         while (strchr("0123456789\a", *ptr) != NULL && ptr > raw_input_expr) { ptr -= 1; }
@@ -633,6 +797,10 @@ void plus_tokenize(char * raw_input_expr, struct NODE * head) {
         int offset = statement_start - raw_input_expr;
         struct NODE * n = malloc(sizeof(struct NODE));
         n->index = statement_start;
+        if (DEBUG_TOGGLE) {
+            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+            printf("new node index: %p\n", n->index);
+        }
         struct NAMED_TOKEN * nt  = malloc(sizeof(struct NAMED_TOKEN));
         union TOKEN * t = malloc(sizeof(union TOKEN));
         struct PLUS * plus = malloc(sizeof(struct PLUS));
@@ -662,12 +830,31 @@ void plus_tokenize(char * raw_input_expr, struct NODE * head) {
         }
         n->token = nt;
         insertNode(n, head);
+        if (DEBUG_TOGGLE) {
+            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+            printf("----------------\n");
+            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+            printf("raw_input_expr: ");
+            printEscStr(raw_input_expr);
+            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+            printf("before shift back\n");
+            printList(head);
+            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+            printf("len of valid indexes: %lu\n", strlen(statement_start));
+        }
+        shiftNDownInRange(statement_start+1, statement_start+strlen(statement_start), statement_length-1, head);
+        if (DEBUG_TOGGLE) {
+            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+            printf("after shift back\n");
+            printList(head);
+            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
+            printf("----------------\n");
+        }
         raw_input_expr[offset] = '\a';
         for (int i = offset+1; i < (length - statement_length + 1); i++) {
             raw_input_expr[i] = raw_input_expr[i+statement_length-1];
         }
         raw_input_expr[1 + length - statement_length] = '\0';
-        shiftNPastIndex(statement_start, statement_length-1, head);
         r = strstr(raw_input_expr, "+");
     }
 }
@@ -721,12 +908,12 @@ void sub_tokenize(char * raw_input_expr, struct NODE * head) {
         }
         n->token = nt;
         insertNode(n, head);
+        shiftNDownInRange(statement_start+1, statement_start+strlen(statement_start), statement_length-1, head);
         raw_input_expr[offset] = '\a';
         for (int i = offset+1; i < (length - statement_length + 1); i++) {
             raw_input_expr[i] = raw_input_expr[i+statement_length-1];
         }
         raw_input_expr[1 + length - statement_length] = '\0';
-        shiftNPastIndex(statement_start, statement_length-1, head);
         r = strstr(raw_input_expr, "-");
     }
 }
@@ -744,6 +931,8 @@ struct NAMED_RESULT * simplify(struct NAMED_TOKEN * tt) {
         mod_parse(tt, nr);
     } else if (strcmp(tt->name, "DIV") == 0) {
         div_parse(tt, nr);
+    } else if (strcmp(tt->name, "MUL") == 0) {
+        mul_parse(tt, nr);
     }
     return nr;
 }
@@ -1107,8 +1296,8 @@ void div_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
                     nr->result.Float.v = (double)lhr->result.Char.v / (double)rhr->result.Char.v;
                     break;
                 case 3:
-                    // implicitly converts both args to floats
-                    nr->result.Float.v = (double)lhr->result.Char.v / (double)rhr->result.Bool.v;
+                    // division by a boolean is undefined
+                    assert(rhrt != 3);
                     break;
             }
             break;
@@ -1132,6 +1321,87 @@ void div_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
                     assert(lhrt != 3 || rhrt != 3);
                     break;
             }
+            break;
+    }
+}
+
+void mul_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
+    struct NAMED_RESULT * lhr = simplify(tt->token->Plus->lh);
+    struct NAMED_RESULT * rhr = simplify(tt->token->Plus->rh);
+    int lhrt = type_2_int(lhr);
+    int rhrt = type_2_int(rhr);
+    assert(lhrt < 4); // both args must be arith types (for now, implicit conversion will be implemented later)
+    assert(rhrt < 4);
+    assert(lhrt >= 0); // check for unknown types
+    assert(rhrt >= 0);
+    switch (lhrt) {
+        case 0:
+            strcpy(nr->name, "R_FLOAT");
+            switch (rhrt) {
+                case 0:
+                    nr->result.Float.v = lhr->result.Float.v * rhr->result.Float.v;
+                    break;
+                case 1:
+                    // implicityly converts the rh int arg to a float
+                    nr->result.Float.v = lhr->result.Float.v * rhr->result.Int.v;
+                    break;
+                case 2:
+                    // implicitly converts the rh char arg to a float
+                    nr->result.Float.v = lhr->result.Float.v * rhr->result.Char.v;
+                    break;
+                case 3:
+                    // multiplication by a boolean is undefined
+                    assert(rhrt != 3);
+                    break;
+            }
+            break;
+        case 1:
+            switch (rhrt) {
+                case 0:
+                    // implicitly converts left hand args to float
+                    strcpy(nr->name, "R_FLOAT");
+                    nr->result.Float.v = (double)lhr->result.Int.v * rhr->result.Float.v;
+                    break;
+                case 1:
+                    strcpy(nr->name, "R_INT");
+                    nr->result.Int.v = lhr->result.Int.v * rhr->result.Int.v;
+                    break;
+                case 2:
+                    // implicitly converts right hand arg to Int
+                    strcpy(nr->name, "R_INT");
+                    nr->result.Int.v = lhr->result.Int.v * (int)rhr->result.Char.v;
+                    break;
+                case 3:
+                    // multiplication by a boolean is undefined
+                    assert(rhrt != 3);
+                    break;
+            }
+            break;
+        case 2:
+            switch (rhrt) {
+                case 0:
+                    // implicitly converts first arg to float
+                    strcpy(nr->name, "R_FLOAT");
+                    nr->result.Float.v = (double)lhr->result.Char.v * rhr->result.Float.v;
+                    break;
+                case 1:
+                    // implicitly converts left hand arg to int
+                    strcpy(nr->name, "R_Int");
+                    nr->result.Int.v = (int)lhr->result.Char.v * rhr->result.Int.v;
+                    break;
+                case 2:
+                    strcpy(nr->name, "R_CHAR");
+                    nr->result.Char.v = lhr->result.Char.v * rhr->result.Char.v;
+                    break;
+                case 3:
+                    // multiplication by a boolean is undefined
+                    assert(rhrt != 3);
+                    break;
+            }
+            break;
+        case 3:
+            // multiplication by a boolean is undefined
+            assert(lhrt != 3);
             break;
     }
 }
