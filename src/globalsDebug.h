@@ -9,7 +9,7 @@
 #include <stdarg.h>
 
 int GLOBAL_TABS = 0;
-int DEBUG_TOGGLE = 1;
+int DEBUG_TOGGLE = 0;
 
 void DBPRINTF(char* fmt,...) {
     if (DEBUG_TOGGLE) {

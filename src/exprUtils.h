@@ -13,6 +13,21 @@
 #include "results.h"
 #include "globalsDebug.h"
 
+void DBPRINTESCSTR(char * s) {
+    if (DEBUG_TOGGLE) {
+        int i = 0;
+        while (*s != '\0') {
+            if (*s == '\a') {
+                printf("PTR_%d", i);
+                i++;
+            }
+            printf("%c", *s);
+            s++;
+        }
+        printf("\n");
+    }
+}
+
 void printEscStr(char * s) {
     int i = 0;
     while (*s != '\0') {

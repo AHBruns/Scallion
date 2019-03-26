@@ -69,135 +69,116 @@ char ** sequencize(char * raw_input_str) {
         }
         ptr2 = ptr1;
     }
-//    for (int i = 0; i < MAX_LINES; i++) {
-//        printf("%s\n", lines[i]);
-//    }
     return lines;
 }
 
 struct NAMED_TOKEN * tokenize(char * raw_input_expr, struct NODE * node, struct BINDING * env[MAX_CONCURRENT_BINDINGS]) {
-    if (DEBUG_TOGGLE) {
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr: %p\n", raw_input_expr);
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr initially: ");
-        printEscStr(raw_input_expr);
-        printList(node);
-    }
+    // START DB
+    DBPRINTF("raw_input_expr: %p\n", raw_input_expr);
+    DBPRINTF("raw_input_expr initially: ");
+    DBPRINTESCSTR(raw_input_expr);
+    DBPRINTLIST(node);
+    // END DB
     /*** inject bindings ***/
     inject_env(raw_input_expr, node, env);
-    if (DEBUG_TOGGLE) {
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr: %p\n", raw_input_expr);
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr after inject_env: ");
-        printEscStr(raw_input_expr);
-        printList(node);
-    }
+    // START DB
+    DBPRINTF("raw_input_expr: %p\n", raw_input_expr);
+    DBPRINTF("raw_input_expr after inject_env: ");
+    DBPRINTESCSTR(raw_input_expr);
+    DBPRINTLIST(node);
+    // END DB
     /*** constants pass ***/
     const_tokenize_pass(raw_input_expr, node);
+    // START DB
     DBPRINTF("raw_input_expr: %p\n", raw_input_expr);
     DBPRINTF("raw_input_expr after const_tokenize_pass: ");
-    printEscStr(raw_input_expr);
+    DBPRINTESCSTR(raw_input_expr);
     DBPRINTLIST(node);
+    // END DB
     /*** parenthesis pass ***/
     paren_tokenize(raw_input_expr, node, env);
-    if (DEBUG_TOGGLE) {
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr: %p\n", raw_input_expr);
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr after paren_tokenize: ");
-        printEscStr(raw_input_expr);
-        printList(node);
-    }
+    // START DB
+    DBPRINTF("raw_input_expr: %p\n", raw_input_expr);
+    DBPRINTF("raw_input_expr after paren_tokenize: ");
+    DBPRINTESCSTR(raw_input_expr);
+    DBPRINTLIST(node);
+    // END DB
     /*** exponentiation pass ***/
     pow_tokenize(raw_input_expr, node);
-    if (DEBUG_TOGGLE) {
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr: %p\n", raw_input_expr);
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr after pow_tokenize: ");
-        printEscStr(raw_input_expr);
-        printList(node);
-    }
+    // START DB
+    DBPRINTF("raw_input_expr: %p\n", raw_input_expr);
+    DBPRINTF("raw_input_expr after pow_tokenize: ");
+    DBPRINTESCSTR(raw_input_expr);
+    DBPRINTLIST(node);
+    // END DB
     /*** multiplication pass ***/
     mul_tokenize(raw_input_expr, node);
-    if (DEBUG_TOGGLE) {
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr: %p\n", raw_input_expr);
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr after mul_tokenize: ");
-        printEscStr(raw_input_expr);
-        printList(node);
-    }
+    // START DB
+    DBPRINTF("raw_input_expr: %p\n", raw_input_expr);
+    DBPRINTF("raw_input_expr after mul_tokenize: ");
+    DBPRINTESCSTR(raw_input_expr);
+    DBPRINTLIST(node);
+    // END DB
     /*** floor division pass ***/
     fdiv_tokenize(raw_input_expr, node);
-    if (DEBUG_TOGGLE) {
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr: %p\n", raw_input_expr);
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr after fdiv_tokenize: ");
-        printEscStr(raw_input_expr);
-        printList(node);
-    }
+    // START DB
+    DBPRINTF("raw_input_expr: %p\n", raw_input_expr);
+    DBPRINTF("raw_input_expr after fdiv_tokenize: ");
+    DBPRINTESCSTR(raw_input_expr);
+    DBPRINTLIST(node);
+    // END DB
     /*** division pass ***/
     div_tokenize(raw_input_expr, node);
-    if (DEBUG_TOGGLE) {
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr: %p\n", raw_input_expr);
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr after div_tokenize: ");
-        printEscStr(raw_input_expr);
-        printList(node);
-    }
+    // START DB
+    DBPRINTF("raw_input_expr: %p\n", raw_input_expr);
+    DBPRINTF("raw_input_expr after div_tokenize: ");
+    DBPRINTESCSTR(raw_input_expr);
+    DBPRINTLIST(node);
+    // END DB
     /*** modulo pass ***/
     mod_tokenize(raw_input_expr, node);
-    if (DEBUG_TOGGLE) {
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr: %p\n", raw_input_expr);
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr after mod_tokenize: ");
-        printEscStr(raw_input_expr);
-        printList(node);
-    }
+    // START DB
+    DBPRINTF("raw_input_expr: %p\n", raw_input_expr);
+    DBPRINTF("raw_input_expr after mod_tokenize: ");
+    DBPRINTESCSTR(raw_input_expr);
+    DBPRINTLIST(node);
+    // END DB
     /*** plus pass ***/
     plus_tokenize(raw_input_expr, node);
-    if (DEBUG_TOGGLE) {
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr: %p\n", raw_input_expr);
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr after plus_tokenize: ");
-        printEscStr(raw_input_expr);
-        printList(node);
-    }
+    // START DB
+    DBPRINTF("raw_input_expr: %p\n", raw_input_expr);
+    DBPRINTF("raw_input_expr after plus_tokenize: ");
+    DBPRINTESCSTR(raw_input_expr);
+    DBPRINTLIST(node);
+    // END DB
     /*** sub pass ***/
     sub_tokenize(raw_input_expr, node);
-    if (DEBUG_TOGGLE) {
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr: %p\n", raw_input_expr);
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr after sub_tokenize: ");
-        printEscStr(raw_input_expr);
-        printList(node);
-    }
+    // START DB
+    DBPRINTF("raw_input_expr: %p\n", raw_input_expr);
+    DBPRINTF("raw_input_expr after sub_tokenize: ");
+    DBPRINTESCSTR(raw_input_expr);
+    DBPRINTLIST(node);
+    // END DB
     /*** binding pass ***/
     new_binding_tokenize(raw_input_expr, node, env);
-    if (DEBUG_TOGGLE) {
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr: %p\n", raw_input_expr);
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr after new_binding_tokenize: ");
-        printEscStr(raw_input_expr);
-        printList(node);
-    }
+    // START DB
+    DBPRINTF("raw_input_expr: %p\n", raw_input_expr);
+    DBPRINTF("raw_input_expr after new_binding_tokenize: ");
+    DBPRINTESCSTR(raw_input_expr);
+    DBPRINTLIST(node);
+    // END DB
     struct NAMED_TOKEN * ret = nodeFromIndex(raw_input_expr, node)->token;
     return ret;
 }
 
 void const_tokenize_pass(char * raw_input_expr, struct NODE * head) {
+    // START DB
     DBPRINTF("%s\n", raw_input_expr);
+    // END DB
     for (int i = 0; *(raw_input_expr+i) != '\0'; i++) {
+        // START DB
         DBPRINTF("i: %d\n", i);
+        // END DB
         if (*(raw_input_expr + i) == '0' ||
             *(raw_input_expr + i) == '1' ||
             *(raw_input_expr + i) == '2' ||
@@ -209,13 +190,17 @@ void const_tokenize_pass(char * raw_input_expr, struct NODE * head) {
             *(raw_input_expr + i) == '8' ||
             *(raw_input_expr + i) == '9') {
             struct NAMED_TOKEN * nt = const_tokenize(raw_input_expr+i);
+            // START DB
             DBPRINTF("found const: %d\n", nt->token->Const->v);
+            // END DB
             struct NODE * n = malloc(sizeof(struct NODE));
             n->index = raw_input_expr+i;
             n->token = nt;
             int const_size = strcspn(raw_input_expr+i, NON_INT_CHARS);
+            // START DB
             DBPRINTF("const_size: %d\n", const_size);
             DBPRINTF("%s\n", raw_input_expr);
+            // END DB
             shiftNDownInRange(raw_input_expr+i, raw_input_expr+i+const_size, const_size-1, head);
             insertNode(n, head);
             int j = 0;
@@ -224,11 +209,15 @@ void const_tokenize_pass(char * raw_input_expr, struct NODE * head) {
             DBPRINTF("%s\n", raw_input_expr);
             for (; *(raw_input_expr+i+j+1+const_size) != '\0'; j++) {
                 raw_input_expr[i+j+1] = raw_input_expr[i+j+1+const_size];
+                // START DB
                 DBPRINTF("raw_input_expr: ");
-                printEscStr(raw_input_expr);
+                DBPRINTESCSTR(raw_input_expr);
+                // END DB
             }
             raw_input_expr[i+j+const_size+1] = '\0';
+            // START DB
             DBPRINTF("raw_input_expr: %s\n", raw_input_expr);
+            // END DB
         }
     }
 }
@@ -292,15 +281,12 @@ void inject_env(char * raw_input_expr, struct NODE * head, struct BINDING * env[
 
     int i = 0;
     while (i < MAX_CONCURRENT_BINDINGS && env[i] != NULL) {
-        if (DEBUG_TOGGLE) {
-            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-            printf("inject_env:\n");
-            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-            printf("raw_input_expr: %p\n", raw_input_expr);
-            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-            printf("raw_input_expr: ");
-            printEscStr(raw_input_expr);
-        }
+        // START DB
+        DBPRINTF("inject_env:\n");
+        DBPRINTF("raw_input_expr: %p\n", raw_input_expr);
+        DBPRINTF("raw_input_expr: ");
+        DBPRINTESCSTR(raw_input_expr);
+        // END DB
         char * name = env[i]->name;
         int name_length = strlen(name);
         char * loc = strstr(raw_input_expr+binding_offset, name);
@@ -326,13 +312,11 @@ void inject_env(char * raw_input_expr, struct NODE * head, struct BINDING * env[
 }
 
 void new_binding_tokenize(char * raw_input_expr, struct NODE * head, struct BINDING * env[MAX_CONCURRENT_BINDINGS]) {
-    if (DEBUG_TOGGLE) {
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr: %p\n", raw_input_expr);
-        for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-        printf("raw_input_expr: ");
-        printEscStr(raw_input_expr);
-    }
+    // START DB
+    DBPRINTF("raw_input_expr: %p\n", raw_input_expr);
+    DBPRINTF("raw_input_expr: ");
+    DBPRINTESCSTR(raw_input_expr);
+    // END DB
     char * binding_loc = strchr(raw_input_expr, '=');
     int statement_length = 0;
     if (!binding_loc) {
@@ -346,16 +330,13 @@ void new_binding_tokenize(char * raw_input_expr, struct NODE * head, struct BIND
         memmove(name, raw_input_expr, statement_length);
         name[statement_length] = '\0';
         memmove(raw_input_expr, binding_loc+1, strlen(binding_loc));
-        if (DEBUG_TOGGLE) {
-            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-            printf("raw_input_expr: %p\n", raw_input_expr);
-            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-            printf("raw_input_expr: ");
-            printEscStr(raw_input_expr);
-            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-            printf("offset: %d\n", statement_length+1);
-            printList(head);
-        }
+        // START DB
+        DBPRINTF("raw_input_expr: %p\n", raw_input_expr);
+        DBPRINTF("raw_input_expr: ");
+        DBPRINTESCSTR(raw_input_expr);
+        DBPRINTF("offset: %d\n", statement_length+1);
+        DBPRINTLIST(head);
+        // END DB
         shiftNDownInRange(raw_input_expr, raw_input_expr+strlen(raw_input_expr)+statement_length, statement_length+1, head);
         int i = 0;
         while (i < MAX_CONCURRENT_BINDINGS && env[i] != NULL) i++;
@@ -393,9 +374,9 @@ void paren_tokenize(char * raw_input_expr, struct NODE * head, struct BINDING * 
     assert(count == 0);
     for (int i = 99; i >= 0; i--) {
         if (pairs[i].depth == -1) {
-            if (DEBUG_TOGGLE) {
-                printf("doing stuff in paren_tokenize\n");
-            }
+            // START DB
+            DBPRINTF("doing stuff in paren_tokenize\n");
+            // END DB
             int subexpr_length = pairs[i].ending - pairs[i].beginning;
             char subexpr[subexpr_length];
             memmove(subexpr, pairs[i].beginning+1, subexpr_length-1);
@@ -403,58 +384,46 @@ void paren_tokenize(char * raw_input_expr, struct NODE * head, struct BINDING * 
             struct NODE subexpr_head = { NULL, NULL, NULL };
             struct BINDING * envcpy[MAX_CONCURRENT_BINDINGS];
             memmove(envcpy, env, MAX_CONCURRENT_BINDINGS * sizeof(struct BINDING *));
-            if (DEBUG_TOGGLE) {
-                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-                printf("----------------\n");
-                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-                printf("pairs[i]: ");
-                printEscStr((pairs[i].beginning));
-                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-                printf("pairs[i] loc: %p\n", pairs[i].beginning);
-                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-                printf("subexpr: ");
-                printEscStr((subexpr));
-                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-                printf("subexpr loc: %p\n", subexpr);
-                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-                printf("ptrexpr: ");
-                printEscStr(raw_input_expr);
-                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-                printf("ptrexpr loc: %p\n", raw_input_expr);
-                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-                printf("before shift\n");
-                printList(head);
-            }
+            // START DB
+            DBPRINTF("----------------\n");
+            DBPRINTF("pairs[i]: ");
+            DBPRINTESCSTR((pairs[i].beginning));
+            DBPRINTF("pairs[i] loc: %p\n", pairs[i].beginning);
+            DBPRINTF("subexpr: ");
+            DBPRINTESCSTR((subexpr));
+            DBPRINTF("subexpr loc: %p\n", subexpr);
+            DBPRINTF("ptrexpr: ");
+            DBPRINTESCSTR(raw_input_expr);
+            DBPRINTF("ptrexpr loc: %p\n", raw_input_expr);
+            DBPRINTF("before shift\n");
+            DBPRINTLIST(head);
+            // END DB
             if (subexpr > raw_input_expr) {
                 shiftNUpInRange(pairs[i].beginning, pairs[i].ending, (unsigned long)subexpr-(unsigned long)(pairs[i].beginning)-1, head);
             } else {
                 shiftNDownInRange(pairs[i].beginning, pairs[i].ending, (unsigned long)(pairs[i].beginning)-(unsigned long)subexpr+1, head);
             }
-            if (DEBUG_TOGGLE) {
-                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-                printf("before\n");
-                printList(head);
-                GLOBAL_TABS++;
-            }
+            // START DB
+            DBPRINTF("before\n");
+            DBPRINTLIST(head);
+            GLOBAL_TABS++;
+            // END DB
             struct NAMED_TOKEN * nt = tokenize(subexpr, head, envcpy);
-            if (DEBUG_TOGGLE) {
-                GLOBAL_TABS--;
-                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-                printf("after\n");
-                printList(head);
-            }
+            // START DB
+            GLOBAL_TABS--;
+            DBPRINTF("after\n");
+            DBPRINTLIST(head);
+            // END DB
             if (subexpr > raw_input_expr) {
                 shiftNDownInRange(subexpr, subexpr+strlen(subexpr), (unsigned long)subexpr-(unsigned long)(pairs[i].beginning), head);
             } else {
                 shiftNUpInRange(subexpr, subexpr+strlen(subexpr), (unsigned long)(pairs[i].beginning)-(unsigned long)subexpr, head);
             }
-            if (DEBUG_TOGGLE) {
-                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-                printf("after shift back\n");
-                printList(head);
-                for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-                printf("----------------\n");
-            }
+            // START DB
+            DBPRINTF("after shift back\n");
+            DBPRINTLIST(head);
+            DBPRINTF("----------------\n");
+            // END DB
             int offset = pairs[i].beginning - raw_input_expr;
             int length = strlen(raw_input_expr);
             shiftNDownInRange(pairs[i].ending, pairs[i].ending+strlen(pairs[i].ending), subexpr_length, head);
@@ -766,14 +735,12 @@ void mod_tokenize(char * raw_input_expr, struct NODE * head) {
 void plus_tokenize(char * raw_input_expr, struct NODE * head) {
     char * r = strstr(raw_input_expr, "+");
     while (r) {
-        if (DEBUG_TOGGLE) {
-            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-            printf("raw_input_expr: %p\n", raw_input_expr);
-            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-            printf("raw_input_expr: ");
-            printEscStr(raw_input_expr);
-            printList(head);
-        }
+        // START DB
+        DBPRINTF("raw_input_expr: %p\n", raw_input_expr);
+        DBPRINTF("raw_input_expr: ");
+        DBPRINTESCSTR(raw_input_expr);
+        DBPRINTLIST(head);
+        // END DB
         int length = strlen(raw_input_expr);
         char * ptr = r - 1;
         while (strchr("0123456789\a", *ptr) != NULL && ptr > raw_input_expr) { ptr -= 1; }
@@ -791,10 +758,9 @@ void plus_tokenize(char * raw_input_expr, struct NODE * head) {
         int offset = statement_start - raw_input_expr;
         struct NODE * n = malloc(sizeof(struct NODE));
         n->index = statement_start;
-        if (DEBUG_TOGGLE) {
-            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-            printf("new node index: %p\n", n->index);
-        }
+        // START DB
+        DBPRINTF("new node index: %p\n", n->index);
+        // END DB
         struct NAMED_TOKEN * nt  = malloc(sizeof(struct NAMED_TOKEN));
         union TOKEN * t = malloc(sizeof(union TOKEN));
         struct PLUS * plus = malloc(sizeof(struct PLUS));
@@ -824,26 +790,20 @@ void plus_tokenize(char * raw_input_expr, struct NODE * head) {
         }
         n->token = nt;
         insertNode(n, head);
-        if (DEBUG_TOGGLE) {
-            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-            printf("----------------\n");
-            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-            printf("raw_input_expr: ");
-            printEscStr(raw_input_expr);
-            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-            printf("before shift back\n");
-            printList(head);
-            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-            printf("len of valid indexes: %lu\n", strlen(statement_start));
-        }
+        // START DB
+        DBPRINTF("----------------\n");
+        DBPRINTF("raw_input_expr: ");
+        DBPRINTESCSTR(raw_input_expr);
+        DBPRINTF("before shift back\n");
+        DBPRINTLIST(head);
+        DBPRINTF("len of valid indexes: %lu\n", strlen(statement_start));
+        // END DB
         shiftNDownInRange(statement_start+1, statement_start+strlen(statement_start), statement_length-1, head);
-        if (DEBUG_TOGGLE) {
-            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-            printf("after shift back\n");
-            printList(head);
-            for (int tc = 0; tc < GLOBAL_TABS; tc++) { printf("\t"); }
-            printf("----------------\n");
-        }
+        // START DB
+        DBPRINTF("after shift back\n");
+        DBPRINTLIST(head);
+        DBPRINTF("----------------\n");
+        // END DB
         raw_input_expr[offset] = '\a';
         for (int i = offset+1; i < (length - statement_length + 1); i++) {
             raw_input_expr[i] = raw_input_expr[i+statement_length-1];
