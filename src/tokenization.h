@@ -17,11 +17,12 @@
 #include "alexBrunsDataStructs.h"
 #include "exprUtils.h"
 #include "results.h"
-#include "debugGlobals.h"
+#include "globalsDebug.h"
 #include "globals.h"
 
 char ** sequencize(char *);
 struct NAMED_TOKEN * tokenize(char *, struct NODE *, struct BINDING * env[MAX_CONCURRENT_BINDINGS]);
+void const_tokenize_pass(char *, struct NODE *);
 struct NAMED_TOKEN * const_tokenize(char *);
 void inject_env(char *, struct NODE *, struct BINDING * env[MAX_CONCURRENT_BINDINGS]);
 void new_binding_tokenize(char *, struct NODE *, struct BINDING * env[MAX_CONCURRENT_BINDINGS]);
@@ -93,6 +94,12 @@ struct NAMED_TOKEN * tokenize(char * raw_input_expr, struct NODE * node, struct 
         printEscStr(raw_input_expr);
         printList(node);
     }
+    /*** constants pass ***/
+    const_tokenize_pass(raw_input_expr, node);
+    DBPRINTF("raw_input_expr: %p\n", raw_input_expr);
+    DBPRINTF("raw_input_expr after const_tokenize_pass: ");
+    printEscStr(raw_input_expr);
+    DBPRINTLIST(node);
     /*** parenthesis pass ***/
     paren_tokenize(raw_input_expr, node, env);
     if (DEBUG_TOGGLE) {
@@ -184,12 +191,50 @@ struct NAMED_TOKEN * tokenize(char * raw_input_expr, struct NODE * node, struct 
         printList(node);
     }
     struct NAMED_TOKEN * ret = nodeFromIndex(raw_input_expr, node)->token;
-    //freeList(node->next);
     return ret;
 }
 
+void const_tokenize_pass(char * raw_input_expr, struct NODE * head) {
+    DBPRINTF("%s\n", raw_input_expr);
+    for (int i = 0; *(raw_input_expr+i) != '\0'; i++) {
+        DBPRINTF("i: %d\n", i);
+        if (*(raw_input_expr + i) == '0' ||
+            *(raw_input_expr + i) == '1' ||
+            *(raw_input_expr + i) == '2' ||
+            *(raw_input_expr + i) == '3' ||
+            *(raw_input_expr + i) == '4' ||
+            *(raw_input_expr + i) == '5' ||
+            *(raw_input_expr + i) == '6' ||
+            *(raw_input_expr + i) == '7' ||
+            *(raw_input_expr + i) == '8' ||
+            *(raw_input_expr + i) == '9') {
+            struct NAMED_TOKEN * nt = const_tokenize(raw_input_expr+i);
+            DBPRINTF("found const: %d\n", nt->token->Const->v);
+            struct NODE * n = malloc(sizeof(struct NODE));
+            n->index = raw_input_expr+i;
+            n->token = nt;
+            int const_size = strcspn(raw_input_expr+i, NON_INT_CHARS);
+            DBPRINTF("const_size: %d\n", const_size);
+            DBPRINTF("%s\n", raw_input_expr);
+            shiftNDownInRange(raw_input_expr+i, raw_input_expr+i+const_size, const_size-1, head);
+            insertNode(n, head);
+            int j = 0;
+            DBPRINTF("%s\n", raw_input_expr);
+            raw_input_expr[i] = '\a';
+            DBPRINTF("%s\n", raw_input_expr);
+            for (; *(raw_input_expr+i+j+1+const_size) != '\0'; j++) {
+                raw_input_expr[i+j+1] = raw_input_expr[i+j+1+const_size];
+                DBPRINTF("raw_input_expr: ");
+                printEscStr(raw_input_expr);
+            }
+            raw_input_expr[i+j+const_size+1] = '\0';
+            DBPRINTF("raw_input_expr: %s\n", raw_input_expr);
+        }
+    }
+}
+
 struct NAMED_TOKEN * const_tokenize(char * raw_input_expr) {
-    int const_length = strcspn(raw_input_expr, "+-*/%=><()abcdefghijklmnopqrstuvwxyz\a"); // length till non-int character
+    int const_length = strcspn(raw_input_expr, NON_INT_CHARS); // length till non-int character
     long str_length = strlen(raw_input_expr);
     long int value = 0;
     for (int i = 0; i < const_length; i++) {
@@ -236,6 +281,15 @@ struct NAMED_TOKEN * const_tokenize(char * raw_input_expr) {
 }
 
 void inject_env(char * raw_input_expr, struct NODE * head, struct BINDING * env[MAX_CONCURRENT_BINDINGS]) {
+    char * binding_loc = strchr(raw_input_expr, '=');
+    int binding_offset = 0;
+    if (!binding_loc) {
+        return;
+    } else {
+        if (strchr(OP_CHARS, binding_loc[1]) || strchr(OP_CHARS, *(binding_loc-1)))
+            binding_offset = binding_loc - raw_input_expr;
+    }
+
     int i = 0;
     while (i < MAX_CONCURRENT_BINDINGS && env[i] != NULL) {
         if (DEBUG_TOGGLE) {
@@ -249,7 +303,7 @@ void inject_env(char * raw_input_expr, struct NODE * head, struct BINDING * env[
         }
         char * name = env[i]->name;
         int name_length = strlen(name);
-        char * loc = strstr(raw_input_expr, name);
+        char * loc = strstr(raw_input_expr+binding_offset, name);
         while (loc != NULL) {
             if (strchr(OP_CHARS, *(loc-1)) != NULL && (strchr(OP_CHARS, *(loc+name_length)) != NULL || *(loc+name_length) == '\0')) {
                 int offset = loc - raw_input_expr;
@@ -265,7 +319,7 @@ void inject_env(char * raw_input_expr, struct NODE * head, struct BINDING * env[
                 raw_input_expr[1 + length - name_length] = '\0';
                 shiftNDownInRange(loc, loc+strlen(loc), name_length-1, head);
             }
-            loc = strstr(raw_input_expr, name);
+            loc = strstr(raw_input_expr+binding_offset, name);
         }
         i++;
     }

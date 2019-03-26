@@ -17,7 +17,7 @@
 #include "alexBrunsDataStructs.h"
 #include "exprUtils.h"
 #include "results.h"
-#include "debugGlobals.h"
+#include "globalsDebug.h"
 #include "globals.h"
 
 struct NAMED_RESULT * simplify(struct NAMED_TOKEN *);
@@ -27,6 +27,7 @@ void plus_parse(struct NAMED_TOKEN *, struct NAMED_RESULT *);
 void sub_parse(struct NAMED_TOKEN *, struct NAMED_RESULT *);
 void mod_parse(struct NAMED_TOKEN *, struct NAMED_RESULT *);
 void div_parse(struct NAMED_TOKEN *, struct NAMED_RESULT *);
+void fdiv_parse(struct NAMED_TOKEN *, struct NAMED_RESULT *);
 void mul_parse(struct NAMED_TOKEN *, struct NAMED_RESULT *);
 
 /*** PARSING ***/
@@ -42,6 +43,8 @@ struct NAMED_RESULT * simplify(struct NAMED_TOKEN * tt) {
         mod_parse(tt, nr);
     } else if (strcmp(tt->name, "DIV") == 0) {
         div_parse(tt, nr);
+    } else if (strcmp(tt->name, "FDIV") == 0) {
+        fdiv_parse(tt, nr);
     } else if (strcmp(tt->name, "MUL") == 0) {
         mul_parse(tt, nr);
     }
@@ -428,10 +431,94 @@ void div_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
                     nr->result.Float.v = (double)lhr->result.Bool.v / (double)rhr->result.Char.v;
                     break;
                 case 3:
-                    // undefined behavior for modding a bool with a bool
+                    // undefined behavior for diving a bool with a bool
                     assert(lhrt != 3 || rhrt != 3);
                     break;
             }
+            break;
+    }
+}
+
+void fdiv_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
+    struct NAMED_RESULT * lhr = simplify(tt->token->Plus->lh);
+    struct NAMED_RESULT * rhr = simplify(tt->token->Plus->rh);
+    int lhrt = type_2_int(lhr);
+    int rhrt = type_2_int(rhr);
+    assert(lhrt < 4); // both args must be arith types (for now, implicit conversion will be implemented later)
+    assert(rhrt < 4);
+    assert(lhrt >= 0); // check for unknown types
+    assert(rhrt >= 0);
+    switch (lhrt) {
+        case 0:
+            switch (rhrt) {
+                case 0:
+                    // casts result to in
+                    strcpy(nr->name, "R_INT");
+                    nr->result.Int.v = (int) (lhr->result.Float.v / rhr->result.Float.v);
+                    break;
+                case 1:
+                    // casts result to in
+                    strcpy(nr->name, "R_INT");
+                    nr->result.Int.v = (int) (lhr->result.Float.v / rhr->result.Int.v);
+                    break;
+                case 2:
+                    // casts result to in
+                    strcpy(nr->name, "R_INT");
+                    nr->result.Int.v = (int) (lhr->result.Float.v / rhr->result.Char.v);
+                    break;
+                case 3:
+                    // floor division by a boolean is undefined
+                    assert(rhrt != 3);
+                    break;
+            }
+            break;
+        case 1:
+            switch (rhrt) {
+                case 0:
+                    // casts result to int
+                    strcpy(nr->name, "R_INT");
+                    nr->result.Int.v = (int) (lhr->result.Int.v / rhr->result.Float.v);
+                    break;
+                case 1:
+                    strcpy(nr->name, "R_INT");
+                    nr->result.Int.v = lhr->result.Int.v / rhr->result.Int.v;
+                    break;
+                case 2:
+                    // implicitly converts the right arg to an int
+                    strcpy(nr->name, "R_INT");
+                    nr->result.Int.v = lhr->result.Int.v / (int)rhr->result.Char.v;
+                    break;
+                case 3:
+                    // floor division by a boolean is undefined
+                    assert(rhrt != 3);
+                    break;
+            }
+            break;
+        case 2:
+            switch (rhrt) {
+                case 0:
+                    // casts result to int
+                    strcpy(nr->name, "R_INT");
+                    nr->result.Int.v = (int) (lhr->result.Char.v / rhr->result.Float.v);
+                    break;
+                case 1:
+                    // implicitly converts first arg to int
+                    strcpy(nr->name, "R_INT");
+                    nr->result.Int.v = (int)lhr->result.Char.v / rhr->result.Int.v;
+                    break;
+                case 2:
+                    strcpy(nr->name, "R_CHAR");
+                    nr->result.Char.v = lhr->result.Char.v / rhr->result.Char.v;
+                    break;
+                case 3:
+                    // division by a boolean is undefined
+                    assert(rhrt != 3);
+                    break;
+            }
+            break;
+        case 3:
+            // undefined behavior for floor diving a bool with a bool
+            assert(lhrt != 3);
             break;
     }
 }
@@ -497,7 +584,7 @@ void mul_parse(struct NAMED_TOKEN * tt, struct NAMED_RESULT * nr) {
                     break;
                 case 1:
                     // implicitly converts left hand arg to int
-                    strcpy(nr->name, "R_Int");
+                    strcpy(nr->name, "R_INT");
                     nr->result.Int.v = (int)lhr->result.Char.v * rhr->result.Int.v;
                     break;
                 case 2:

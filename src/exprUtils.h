@@ -11,7 +11,7 @@
 #include "exprs.h"
 #include "alexBrunsDataStructs.h"
 #include "results.h"
-#include "debugGlobals.h"
+#include "globalsDebug.h"
 
 void printEscStr(char * s) {
     int i = 0;

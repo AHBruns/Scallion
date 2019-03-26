@@ -2,6 +2,16 @@
 // Created by Alex Bruns on 3/9/19.
 //
 
+//
+// TODO
+// - convert old debug statements to new DBPRINTF function calls
+// - finish implementing parsing for existing arith operations
+// - implement sequence token
+// - figure out how to do functions...
+// - bitwise operations
+// - refactor tokenization operations to assume args are tokenized constants
+//
+
 // library includes
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,7 +24,7 @@
 #include "alexBrunsDataStructs.h"
 #include "exprUtils.h"
 #include "results.h"
-#include "debugGlobals.h"
+#include "globalsDebug.h"
 #include "parsing.h"
 #include "tokenization.h"
 #include "globals.h"
