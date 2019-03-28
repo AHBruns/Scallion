@@ -38,6 +38,24 @@ void ll_add(struct NODE * head, void * contents_to_add) {
     }
 }
 
+void ll_add_at(struct NODE * below, void * contents_to_add) {
+    struct NODE * node_to_add = (struct NODE *)calloc(1, sizeof(struct NODE));
+    node_to_add->id = 0;
+    node_to_add->contents = contents_to_add;
+    struct NODE * above = below->next;
+    if (below->next == NULL && below->prev == NULL) {
+        below->next = node_to_add;
+        below->prev = node_to_add;
+        node_to_add->next = below;
+        node_to_add->prev = below;
+    } else {
+        below->next = node_to_add;
+        node_to_add->prev = below;
+        above->prev = node_to_add;
+        node_to_add->next = above;
+    }
+}
+
 void ll_add_with_id(struct NODE * head, void * contents_to_add, unsigned long id) {
     // make new node
     struct NODE * node_to_add = (struct NODE *)calloc(1, sizeof(struct NODE));

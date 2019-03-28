@@ -19,4 +19,9 @@ int char_count_of_integer(long v) {
     return len;
 }
 
+bool streq(char * s1, char * s2) {
+    if (strcmp(s1, s2) == 0) return true;
+    else return false;
+}
+
 #endif //SCALLION_UTILS_H

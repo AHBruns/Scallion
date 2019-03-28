@@ -5,10 +5,11 @@
 #ifndef SCALLION_LEXER_H
 #define SCALLION_LEXER_H
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "symbols.h"
+#include "lex_symbols.h"
 #include "../structures/linked_list.h"
 #include "../globals/globals.h"
 
@@ -368,7 +369,7 @@ int lex_number_helper2(char * program) {
 
 // handles all alphabetical symbols
 void lex_alpha_str(char * program, struct NODE * head, unsigned long line_num, unsigned long char_num) {
-    // TODO
+    // TODO : this is going to suck so I'm putting it off
 }
 
 

@@ -111,7 +111,7 @@ struct IF { long line_num; long char_num; };
 struct ELSE { long line_num; long char_num; };
 
 union EXPR {
-    struct ADD_E add;
+    struct ADD_E add; // N_EXPR name "ADD"
     struct SUB_E sub;
     struct DECIMAL_E decimal;
     struct INTEGER_E integer;
@@ -131,7 +131,7 @@ union EXPR {
 
 struct N_EXPR {
     char name [10];
-    union EPR expr;
+    union EXPR expr;
 };
 
 // helpers
