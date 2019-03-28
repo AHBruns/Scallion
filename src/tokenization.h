@@ -203,18 +203,14 @@ void const_tokenize_pass(char * raw_input_expr, struct NODE * head) {
             // END DB
             shiftNDownInRange(raw_input_expr+i, raw_input_expr+i+const_size, const_size-1, head);
             insertNode(n, head);
-            int j = 0;
+            int j = 1;
             DBPRINTF("%s\n", raw_input_expr);
             raw_input_expr[i] = '\a';
             DBPRINTF("%s\n", raw_input_expr);
-            for (; *(raw_input_expr+i+j+1+const_size) != '\0'; j++) {
-                raw_input_expr[i+j+1] = raw_input_expr[i+j+1+const_size];
-                // START DB
-                DBPRINTF("raw_input_expr: ");
-                DBPRINTESCSTR(raw_input_expr);
-                // END DB
+            for (; *(raw_input_expr+i+j+const_size-1) != '\0'; j++) {
+                raw_input_expr[i+j] = raw_input_expr[i+j+const_size-1];
             }
-            raw_input_expr[i+j+const_size+1] = '\0';
+            raw_input_expr[i+j] = '\0';
             // START DB
             DBPRINTF("raw_input_expr: %s\n", raw_input_expr);
             // END DB

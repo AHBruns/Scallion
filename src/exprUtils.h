@@ -93,11 +93,7 @@ void printResult(struct NAMED_RESULT * nr) {
     if (strcmp(nr->name, "R_INT") == 0) {
         printf("type: integer, value: %d\n", nr->result.Int.v);
     } else if (strcmp(nr->name, "R_FLOAT") == 0) {
-        if (round(nr->result.Float.v) == nr->result.Float.v) {
-            printf("type: floating point , value: %ld\n", (long)nr->result.Float.v);
-        } else {
-            printf("type: floating point , value: %f\n", nr->result.Float.v);
-        }
+        printf("type: floating point , value: %f\n", nr->result.Float.v);
     } else if (strcmp(nr->name, "R_CHAR") == 0) {
         printf("type: char, value: %c\n", nr->result.Char.v);
     } else if (strcmp(nr->name, "R_BOOL") == 0) {
