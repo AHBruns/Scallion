@@ -1,7 +1,5 @@
 # Scallion
 
-![Scallion](assets/logo.jpeg)
-
 Scallion is an experimental program language currently being maintained and developed by a Alex Bruns. It's main features are syntactical richness. Unlike many languages which prioritize readability over information density, Scallion chooses to maximize info-per-character via some unique syntax. 
 
 ## Getting Started
