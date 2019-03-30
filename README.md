@@ -4,4 +4,4 @@
 ## Run the following commands in a terminal to try it out
 - `git clone https://github.com/AHBruns/Scallion`
 - `cd Scallion`
-- `./a.out test.py`
+- `./cscallion src/programs/prog1.sc --all`
