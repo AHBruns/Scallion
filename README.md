@@ -1,13 +1,20 @@
 # Scallion
 
-Scallion is an experimental program language currently being maintained and developed by a Alex Bruns. It's main features are syntactical richness. Unlike many languages which prioritize readability over information density, Scallion chooses to maximize info-per-character via some unique syntax. 
+Scallion is an experimental program language currently being maintained and developed by Alex Bruns. It's main feature is syntactical richness. Unlike many languages which prioritize readability over information density, Scallion chooses to maximize info-per-character via some unique syntax structures. 
 
 ## Getting Started
 
-Run the following commands in a bash terminal:
+Run the following commands in a bash terminal to try compiling in program:
 - `git clone https://github.com/AHBruns/Scallion`
 - `cd Scallion`
 - `./cscallion src/programs/prog1.sc --all`
+
+## General Use
+
+The compiler is `./cscallion`. It can be re-built from source via `gcc -o cscallion src/main.c`. When called it takes one required arg, the relative path of the file you want to compile. Additionally, cscallion can take 3 different flags:
+- `--lex` : print out the lexed program representation used during parsing 
+- `--ast` : print out the abstract-syntax-tree (ast) formed by parsing
+- `--all` : print out all intermediate program representations created during compilation
 
 ### Prerequisites
 
