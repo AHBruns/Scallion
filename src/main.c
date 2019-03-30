@@ -20,45 +20,48 @@
 #include <assert.h>
 
 // local includes
-#include "exprs.h"
-#include "alexBrunsDataStructs.h"
-#include "exprUtils.h"
-#include "results.h"
-#include "globalsDebug.h"
-#include "parsing.h"
-#include "tokenization.h"
-#include "globals.h"
+#include "lexing/lexer.h"
+#include "parsing/parser.h"
+#include "structures/linked_list.h"
+#include "utils/utils.h"
 
 // prototypes
 char * read_in(FILE *);
 
 int main(int argc, char ** argv) {
-    assert(argc == 2);
+    assert(argc >= 2);
+    bool lex_rep_flag = false;
+    bool ast_rep_flag = false;
+    if (argc >= 3) {
+        if (streq(argv[2], "--lex")) lex_rep_flag = true;
+        else if (streq(argv[2], "--ast")) ast_rep_flag = true;
+        else if (streq(argv[2], "--all")) {
+            lex_rep_flag = true;
+            ast_rep_flag = true;
+        }
+    }
+    if (argc >= 4) {
+        if (streq(argv[3], "--lex")) lex_rep_flag = true;
+        else if (streq(argv[3], "--ast")) ast_rep_flag = true;
+        else if (streq(argv[3], "--all")) {
+            lex_rep_flag = true;
+            ast_rep_flag = true;
+        }
+    }
     const char * input_file_name = argv[1];
     FILE * input_file_ptr = fopen(input_file_name, "r");
-    char * input_file_on_heap = read_in(input_file_ptr);
-    char ** expr_sequence = sequencize(input_file_on_heap);
-    int i = 0;
-    struct BINDING * env[MAX_CONCURRENT_BINDINGS] = {0};
-    while (i < MAX_LINES && (long) expr_sequence[i] != 0) {
-        printf("%s\n", expr_sequence[i]);
-        struct NAMED_TOKEN *expr_head = tokenize(expr_sequence[i], &HEAD, env);
-        printExpr(expr_head);
-        printf("\n");
-        free(expr_sequence[i]);
-        i++;
-        DBPRINTLIST(&HEAD);
-        struct NAMED_RESULT * nr = simplify(expr_head);
-        DBPRINTLIST(&HEAD);
-        DBPRINTF("%s\n", nr->name);
-        printResult(nr);
-        freeList(HEAD.next);
-        HEAD.index = NULL;
-        HEAD.token = NULL;
-        HEAD.next = NULL;
-        printf("\n");
+    char * program_str = read_in(input_file_ptr);
+    struct NODE * program = ll_gen_head();
+    lex(program_str, program, 0, 0);
+    if (lex_rep_flag) {
+        printf("Lexicographical Representation:\n");
+        printf_symbols(program);
     }
-    free(expr_sequence);
+    program = parse(program->next);
+    if (ast_rep_flag) {
+        printf("Abstract-Syntax-Tree (AST) Representation:\n");
+        printf_expr_tree(program->contents);
+    }
     return 0;
 }
 

@@ -2,6 +2,8 @@
 // Created by Alex Bruns on 3/26/19.
 //
 
+/// DEPRECATED ///
+
 #ifndef SCALLION_TOKENIZATION_H
 #define SCALLION_TOKENIZATION_H
 

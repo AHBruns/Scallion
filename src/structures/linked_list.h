@@ -5,8 +5,11 @@
 #ifndef SCALLION_LINKED_LIST_H
 #define SCALLION_LINKED_LIST_H
 
+#include <strings.h>
+
 struct NODE {
     void * contents;
+    char contents_type[10];
     struct NODE * next;
     struct NODE * prev;
     unsigned long id;
@@ -16,11 +19,12 @@ struct NODE * ll_gen_head() {
     return (struct NODE *)calloc(1, sizeof(struct NODE));
 }
 
-void ll_add(struct NODE * head, void * contents_to_add) {
+void ll_add(struct NODE * head, void * contents_to_add, char * contents_type) {
     // make new node
     struct NODE * node_to_add = (struct NODE *)calloc(1, sizeof(struct NODE));
     node_to_add->id = 0;
     node_to_add->contents = contents_to_add;
+    strcpy(node_to_add->contents_type, contents_type);
     // add it
     struct NODE * ptr = head;
     if (ptr->next == NULL && ptr->prev == NULL) {
@@ -38,10 +42,11 @@ void ll_add(struct NODE * head, void * contents_to_add) {
     }
 }
 
-void ll_add_at(struct NODE * below, void * contents_to_add) {
+void ll_add_at(struct NODE * below, void * contents_to_add, char * contents_type) {
     struct NODE * node_to_add = (struct NODE *)calloc(1, sizeof(struct NODE));
     node_to_add->id = 0;
     node_to_add->contents = contents_to_add;
+    strcpy(node_to_add->contents_type, contents_type);
     struct NODE * above = below->next;
     if (below->next == NULL && below->prev == NULL) {
         below->next = node_to_add;
@@ -56,11 +61,12 @@ void ll_add_at(struct NODE * below, void * contents_to_add) {
     }
 }
 
-void ll_add_with_id(struct NODE * head, void * contents_to_add, unsigned long id) {
+void ll_add_with_id(struct NODE * head, void * contents_to_add, char * contents_type, unsigned long id) {
     // make new node
     struct NODE * node_to_add = (struct NODE *)calloc(1, sizeof(struct NODE));
     node_to_add->id = id;
     node_to_add->contents = contents_to_add;
+    strcpy(node_to_add->contents_type, contents_type);
     // add it
     struct NODE * ptr = head;
     if (ptr->next == NULL && ptr->prev == NULL) {
@@ -97,7 +103,10 @@ void ll_remove(struct NODE * head, void * contents) {
         below->next = above;
         above->prev = below;
         free(ptr);
-    } else exit (-1);
+    } else {
+        printf("attempted to remove a non-existent node\n");
+        exit (-1);
+    }
 }
 
 // ERROR CODES
@@ -115,6 +124,17 @@ void ll_remove_with_id(struct NODE * head, unsigned long id) {
         above->prev = below;
         free(ptr);
     } else exit (-1);
+}
+
+void ll_print(struct NODE * head) {
+    struct NODE * ptr = head;
+    if (ptr == NULL) {
+        printf("NULL\n"); return;
+    }
+    do {
+        printf("[ <-{%p} (prev), loc:%p, contents:%p, contents_type:%s, id:%ld, (next) {%p}-> ]\n", ptr->prev, ptr, ptr->contents, ptr->contents_type, ptr->id, ptr->next);
+        ptr = ptr->next;
+    } while (ptr != head && ptr != NULL);
 }
 
 

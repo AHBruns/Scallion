@@ -24,6 +24,7 @@ void lex_cb(char * program, struct NODE * head, unsigned long line_num, unsigned
 void lex_ocb(char * program, struct NODE * head, unsigned long line_num, unsigned long char_num);
 void lex_ccb(char * program, struct NODE * head, unsigned long line_num, unsigned long char_num);
 void lex_plus(char * program, struct NODE * head, unsigned long line_num, unsigned long char_num);
+void lex_eq(char * program, struct NODE * head, unsigned long line_num, unsigned long char_num);
 void lex_minus(char * program, struct NODE * head, unsigned long line_num, unsigned long char_num);
 void lex_star(char * program, struct NODE * head, unsigned long line_num, unsigned long char_num);
 void lex_slash(char * program, struct NODE * head, unsigned long line_num, unsigned long char_num);
@@ -40,6 +41,7 @@ void lex_number(char * program, struct NODE * head, unsigned long line_num, unsi
 bool lex_number_helper1(char * program);
 int lex_number_helper2(char * program);
 void lex_alpha_str(char * program, struct NODE * head, unsigned long line_num, unsigned long char_num);
+void lex_excl(char * program, struct NODE * head, unsigned long line_num, unsigned long char_num);
 
 void lex(char * program, struct NODE * head, unsigned long line_num, unsigned long char_num) {
     while (*program != '\0') {
@@ -86,6 +88,10 @@ void lex(char * program, struct NODE * head, unsigned long line_num, unsigned lo
                 return lex_semicolon(program, head, line_num, char_num);
             case ':':
                 return lex_colon(program, head, line_num, char_num);
+            case '=':
+                return lex_eq(program, head, line_num, char_num);
+            case '!':
+                return lex_excl(program, head, line_num, char_num);
             default:
                 return lex_str(program, head, line_num, char_num);
         }
@@ -114,8 +120,42 @@ void lex_op(char * program, struct NODE * head, unsigned long line_num, unsigned
     strcpy(symbol->name, "OP");
     symbol->sym.op.line_num = line_num;
     symbol->sym.op.char_num = char_num;
-    ll_add(head, symbol);
+    ll_add(head, symbol, "N_SYM");
     lex(program+1, head, line_num, char_num+1);
+}
+
+// handles =
+void lex_eq(char * program, struct NODE * head, unsigned long line_num, unsigned long char_num) {
+    struct N_SYM * symbol = gen_symbol();
+    symbol->sym.eq.line_num = line_num;
+    symbol->sym.eq.char_num = char_num;
+    int chars_consumed = 0;
+    if (*(program+1) == '=') {
+        chars_consumed = 2;
+        strcpy(symbol->name, "EQ");
+    } else {
+        chars_consumed = 1;
+        strcpy(symbol->name, "BIND");
+    }
+    ll_add(head, symbol, "N_SYM");
+    lex(program+chars_consumed, head, line_num, char_num+chars_consumed);
+}
+
+// handles ! and !=
+void lex_excl(char * program, struct NODE * head, unsigned long line_num, unsigned long char_num) {
+    struct N_SYM * symbol = gen_symbol();
+    symbol->sym.neq.line_num = line_num;
+    symbol->sym.neq.char_num = char_num;
+    int chars_consumed = 0;
+    if (*(program+1) == '=') {
+        chars_consumed = 2;
+        strcpy(symbol->name, "NEQ");
+    } else {
+        chars_consumed = 1;
+        strcpy(symbol->name, "NOT");
+    }
+    ll_add(head, symbol, "N_SYM");
+    lex(program+chars_consumed, head, line_num, char_num+chars_consumed);
 }
 
 // handles )
@@ -124,7 +164,7 @@ void lex_cp(char * program, struct NODE * head, unsigned long line_num, unsigned
     strcpy(symbol->name, "CP");
     symbol->sym.cp.line_num = line_num;
     symbol->sym.cp.char_num = char_num;
-    ll_add(head, symbol);
+    ll_add(head, symbol, "N_SYM");
     lex(program+1, head, line_num, char_num+1);
 }
 
@@ -134,7 +174,7 @@ void lex_ob(char * program, struct NODE * head, unsigned long line_num, unsigned
     strcpy(symbol->name, "OB");
     symbol->sym.ob.line_num = line_num;
     symbol->sym.ob.char_num = char_num;
-    ll_add(head, symbol);
+    ll_add(head, symbol, "N_SYM");
     lex(program+1, head, line_num, char_num+1);
 }
 
@@ -144,7 +184,7 @@ void lex_cb(char * program, struct NODE * head, unsigned long line_num, unsigned
     strcpy(symbol->name, "CB");
     symbol->sym.cb.line_num = line_num;
     symbol->sym.cb.char_num = char_num;
-    ll_add(head, symbol);
+    ll_add(head, symbol, "N_SYM");
     lex(program+1, head, line_num, char_num+1);
 }
 
@@ -154,7 +194,7 @@ void lex_ocb(char * program, struct NODE * head, unsigned long line_num, unsigne
     strcpy(symbol->name, "OCB");
     symbol->sym.ocb.line_num = line_num;
     symbol->sym.ocb.char_num = char_num;
-    ll_add(head, symbol);
+    ll_add(head, symbol, "N_SYM");
     lex(program+1, head, line_num, char_num+1);
 }
 
@@ -164,7 +204,7 @@ void lex_ccb(char * program, struct NODE * head, unsigned long line_num, unsigne
     strcpy(symbol->name, "CCB");
     symbol->sym.ccb.line_num = line_num;
     symbol->sym.ccb.char_num = char_num;
-    ll_add(head, symbol);
+    ll_add(head, symbol, "N_SYM");
     lex(program+1, head, line_num, char_num+1);
 }
 
@@ -174,7 +214,7 @@ void lex_plus(char * program, struct NODE * head, unsigned long line_num, unsign
     strcpy(symbol->name, "PLUS");
     symbol->sym.plus.line_num = line_num;
     symbol->sym.plus.char_num = char_num;
-    ll_add(head, symbol);
+    ll_add(head, symbol, "N_SYM");
     lex(program+1, head, line_num, char_num+1);
 }
 
@@ -184,7 +224,7 @@ void lex_minus(char * program, struct NODE * head, unsigned long line_num, unsig
     strcpy(symbol->name, "MINUS");
     symbol->sym.minus.line_num = line_num;
     symbol->sym.minus.char_num = char_num;
-    ll_add(head, symbol);
+    ll_add(head, symbol, "N_SYM");
     lex(program+1, head, line_num, char_num+1);
 }
 
@@ -201,7 +241,7 @@ void lex_star(char * program, struct NODE * head, unsigned long line_num, unsign
         strcpy(symbol->name, "MUL");
         chars_consumed = 1;
     }
-    ll_add(head, symbol);
+    ll_add(head, symbol, "N_SYM");
     lex(program+chars_consumed, head, line_num, char_num+chars_consumed);
 }
 
@@ -211,7 +251,7 @@ void lex_slash(char * program, struct NODE * head, unsigned long line_num, unsig
     symbol->sym.div.line_num = line_num;
     symbol->sym.div.char_num = char_num;
     strcpy(symbol->name, "DIV");
-    ll_add(head, symbol);
+    ll_add(head, symbol, "N_SYM");
     lex(program+1, head, line_num, char_num+1);
 }
 
@@ -228,7 +268,7 @@ void lex_gt_gte(char * program, struct NODE * head, unsigned long line_num, unsi
         chars_consumed = 1;
         strcpy(symbol->name, "GT");
     }
-    ll_add(head, symbol);
+    ll_add(head, symbol, "N_SYM");
     lex(program+chars_consumed, head, line_num, char_num+chars_consumed);
 }
 
@@ -245,7 +285,7 @@ void lex_lt_lte(char * program, struct NODE * head, unsigned long line_num, unsi
         chars_consumed = 1;
         strcpy(symbol->name, "LT");
     }
-    ll_add(head, symbol);
+    ll_add(head, symbol, "N_SYM");
     lex(program+chars_consumed, head, line_num, char_num+chars_consumed);
 }
 
@@ -262,7 +302,7 @@ void lex_amper(char * program, struct NODE * head, unsigned long line_num, unsig
         chars_consumed = 1;
         strcpy(symbol->name, "BWAND");
     }
-    ll_add(head, symbol);
+    ll_add(head, symbol, "N_SYM");
     lex(program+chars_consumed, head, line_num, char_num+chars_consumed);
 }
 
@@ -279,7 +319,7 @@ void lex_pipe(char * program, struct NODE * head, unsigned long line_num, unsign
         chars_consumed = 1;
         strcpy(symbol->name, "BWOR");
     }
-    ll_add(head, symbol);
+    ll_add(head, symbol, "N_SYM");
     lex(program+chars_consumed, head, line_num, char_num+chars_consumed);
 }
 
@@ -289,7 +329,7 @@ void lex_modulo(char * program, struct NODE * head, unsigned long line_num, unsi
     symbol->sym.mod.line_num = line_num;
     symbol->sym.mod.char_num = char_num;
     strcpy(symbol->name, "MOD");
-    ll_add(head, symbol);
+    ll_add(head, symbol, "N_SYM");
     lex(program+1, head, line_num, char_num+1);
 }
 
@@ -299,7 +339,7 @@ void lex_comma(char * program, struct NODE * head, unsigned long line_num, unsig
     symbol->sym.comma.line_num = line_num;
     symbol->sym.comma.char_num = char_num;
     strcpy(symbol->name, "COMMA");
-    ll_add(head, symbol);
+    ll_add(head, symbol, "N_SYM");
     lex(program+1, head, line_num, char_num+1);
 }
 
@@ -309,7 +349,7 @@ void lex_semicolon(char * program, struct NODE * head, unsigned long line_num, u
     symbol->sym.semicolon.line_num = line_num;
     symbol->sym.semicolon.char_num = char_num;
     strcpy(symbol->name, "SEMICOLON");
-    ll_add(head, symbol);
+    ll_add(head, symbol, "N_SYM");
     lex(program+1, head, line_num, char_num+1);
 }
 
@@ -319,7 +359,7 @@ void lex_colon(char * program, struct NODE * head, unsigned long line_num, unsig
     symbol->sym.colon.line_num = line_num;
     symbol->sym.colon.char_num = char_num;
     strcpy(symbol->name, "COLON");
-    ll_add(head, symbol);
+    ll_add(head, symbol, "N_SYM");
     lex(program+1, head, line_num, char_num+1);
 }
 
@@ -344,7 +384,7 @@ void lex_number(char * program, struct NODE * head, unsigned long line_num, unsi
         strcpy(symbol->name, "INTEGER");
         symbol->sym.integer.value = atoi(program);
     }
-    ll_add(head, symbol);
+    ll_add(head, symbol, "N_SYM");
     lex(program+chars_consumed, head, line_num, char_num+chars_consumed);
 }
 
@@ -369,7 +409,37 @@ int lex_number_helper2(char * program) {
 
 // handles all alphabetical symbols
 void lex_alpha_str(char * program, struct NODE * head, unsigned long line_num, unsigned long char_num) {
-    // TODO : this is going to suck so I'm putting it off
+    if (strlen(program) >= 4 && strncmp(program, "true", 4) == 0 && (strchr(VALID_VARIABLE_NAME_CHARS, program[4]) == NULL || program[4] == '\0')) {
+        struct N_SYM * symbol = gen_symbol();
+        symbol->sym.boolean.line_num = line_num;
+        symbol->sym.boolean.char_num = char_num;
+        symbol->sym.boolean.value = true;
+        strcpy(symbol->name, "BOOL");
+        ll_add(head, symbol, "N_SYM");
+        lex(program+4, head, line_num, char_num+4);
+    } else if (strlen(program) >= 5 && strncmp(program, "false", 5) == 0 && (strchr(VALID_VARIABLE_NAME_CHARS, program[5]) == NULL || program[5] == '\0')) {
+        struct N_SYM * symbol = gen_symbol();
+        symbol->sym.boolean.line_num = line_num;
+        symbol->sym.boolean.char_num = char_num;
+        symbol->sym.boolean.value = false;
+        strcpy(symbol->name, "BOOL");
+        ll_add(head, symbol, "N_SYM");
+        lex(program+5, head, line_num, char_num+5);
+    } else if (strlen(program) >= 2 && strncmp(program, "if", 2) == 0 && (strchr(VALID_VARIABLE_NAME_CHARS, program[2]) == NULL || program[2] == '\0')) {
+        struct N_SYM * symbol = gen_symbol();
+        symbol->sym._if.line_num = line_num;
+        symbol->sym._if.char_num = char_num;
+        strcpy(symbol->name, "IF");
+        ll_add(head, symbol, "N_SYM");
+        lex(program+2, head, line_num, char_num+2);
+    } else if (strlen(program) >= 4 && strncmp(program, "else", 4) == 0 && (strchr(VALID_VARIABLE_NAME_CHARS, program[4]) == NULL || program[4] == '\0')) {
+        struct N_SYM * symbol = gen_symbol();
+        symbol->sym._else.line_num = line_num;
+        symbol->sym._else.char_num = char_num;
+        strcpy(symbol->name, "ELSE");
+        ll_add(head, symbol, "N_SYM");
+        lex(program+4, head, line_num, char_num+4);
+    }
 }
 
 
