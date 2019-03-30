@@ -24,15 +24,6 @@ The compiler is `./cscallion`. It can be re-built from source via `gcc -o cscall
 
 ##### TODO
 
-### Break down into end to end tests
-
-##### TODO
-
-
-### And coding style tests
-
-##### TODO
-
 ## Contributing
 
 Shoot me an email at, Alex.H.Bruns@gmail.com, or connect on twitter, @AlexHBruns.
@@ -45,7 +36,7 @@ Shoot me an email at, Alex.H.Bruns@gmail.com, or connect on twitter, @AlexHBruns
 
 ## Authors
 
-* **Alex Bruns** - *Sole Developer* - [Twitter](https://twitter.com/AlexHBruns) | [Company](https://topl.co/)
+* **Alex Bruns** - *Sole Developer* - [LinkedIn](https://www.linkedin.com/in/alexbruns/) | [Twitter](https://twitter.com/AlexHBruns) | [Company](https://topl.co/)
 
 ## License
 
