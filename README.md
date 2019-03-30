@@ -20,7 +20,7 @@ The compiler is `./cscallion`. It can be re-built from source via `gcc -o cscall
 
 - GCC
 
-## Running the tests
+## Testing
 
 ##### TODO
 
